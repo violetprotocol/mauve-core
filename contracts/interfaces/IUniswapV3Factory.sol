@@ -8,6 +8,7 @@ interface IUniswapV3Factory {
     /// @param oldOwner The owner before the owner was changed
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+    event SwapRouterChanged(address indexed oldRouter, address indexed newRouter);
 
     /// @notice Emitted when a pool is created
     /// @param token0 The first token of the pool by address sort order

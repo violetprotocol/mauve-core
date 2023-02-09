@@ -13,6 +13,7 @@ import './UniswapV3Pool.sol';
 contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCall {
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
+    address private swapRouter;
 
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
@@ -43,7 +44,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[token0][token1][fee] == address(0));
-        pool = deploy(address(this), token0, token1, fee, tickSpacing);
+        pool = deploy(address(this), token0, token1, fee, tickSpacing, swapRouter);
         getPool[token0][token1][fee] = pool;
         // populate mapping in the reverse direction, deliberate choice to avoid the cost of comparing addresses
         getPool[token1][token0][fee] = pool;
@@ -55,6 +56,12 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         require(msg.sender == owner);
         emit OwnerChanged(owner, _owner);
         owner = _owner;
+    }
+
+    function setSwapRouter(address _router) external {
+        require(msg.sender == owner);
+        emit SwapRouterChanged(swapRouter, _router);
+        swapRouter = _router;
     }
 
     /// @inheritdoc IUniswapV3Factory

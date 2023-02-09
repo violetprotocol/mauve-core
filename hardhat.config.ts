@@ -3,6 +3,8 @@ import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
 
+import './tasks'
+
 export default {
   networks: {
     hardhat: {
@@ -40,6 +42,9 @@ export default {
     },
     polygon: {
       url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    },
+    polygonMumbai: {
+      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}`,
     },
   },
   etherscan: {

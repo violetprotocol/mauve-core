@@ -23,4 +23,6 @@ contract MockTimeUniswapV3Pool is UniswapV3Pool {
     function _blockTimestamp() internal view override returns (uint32) {
         return uint32(time);
     }
+
+    constructor() UniswapV3Pool(address(0x0)) {}
 }
