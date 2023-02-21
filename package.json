@@ -1,20 +1,20 @@
 {
-  "name": "@violetprotocol/v3-core",
-  "description": "🦄 Core smart contracts of Uniswap V3",
+  "name": "@violetprotocol/mauve-v3-core",
+  "description": "Core smart contracts of Mauve",
   "license": "BUSL-1.1",
   "publishConfig": {
     "access": "restricted"
   },
-  "version": "1.0.0",
-  "homepage": "https://uniswap.org",
+  "version": "1.1.0",
+  "homepage": "https://mauve.org",
   "keywords": [
-    "uniswap",
+    "mauve",
     "core",
     "v3"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Uniswap/uniswap-v3-core"
+    "url": "https://github.com/violetprotocol/mauve-v3-core"
   },
   "files": [
     "contracts/interfaces",
