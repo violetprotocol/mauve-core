@@ -116,17 +116,6 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 
     event FlashCallback(uint256 fee0, uint256 fee1);
 
-    function flash(
-        address pool,
-        address recipient,
-        uint256 amount0,
-        uint256 amount1,
-        uint256 pay0,
-        uint256 pay1
-    ) external {
-        IUniswapV3Pool(pool).flash(recipient, amount0, amount1, abi.encode(msg.sender, pay0, pay1));
-    }
-
     function uniswapV3FlashCallback(
         uint256 fee0,
         uint256 fee1,
