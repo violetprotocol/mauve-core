@@ -30,6 +30,9 @@ export default {
     // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  contractSizer: {
+    runOnCompile: false,
+  },
   solidity: {
     version: '0.7.6',
     settings: {
