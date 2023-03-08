@@ -19,7 +19,7 @@ contract MauvePermissions is IMauvePermissions {
 
     /// @inheritdoc IMauvePermissions
     function setPositionManager(address _positionManager) public virtual override {
-        emit SwapRouterChanged(positionManager, _positionManager);
+        emit PositionManagerChanged(positionManager, _positionManager);
         positionManager = _positionManager;
     }
 }
