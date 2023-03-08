@@ -2,19 +2,22 @@
 pragma solidity =0.7.6;
 
 import './interfaces/IUniswapV3Factory.sol';
+import './interfaces/IMauvePermissions.sol';
 
 import './UniswapV3PoolDeployer.sol';
 import './NoDelegateCall.sol';
 
-import './MauvePermissions.sol';
 import './UniswapV3Pool.sol';
 
 /// @title Canonical Uniswap V3 factory
 /// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
-contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, MauvePermissions, NoDelegateCall {
+contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3PoolDeployer, NoDelegateCall {
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
-
+    // @inheritdoc IMauvePermissions
+    address public override swapRouter;
+    // @inheritdoc IMauvePermissions
+    address public override positionManager;
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
     /// @inheritdoc IUniswapV3Factory
@@ -58,16 +61,18 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, MauvePerm
         owner = _owner;
     }
 
-    /// @inheritdoc MauvePermissions
-    function setSwapRouter(address _router) public override(MauvePermissions) {
+    // @inheritdoc IMauvePermissions
+    function setSwapRouter(address _router) external override {
         require(msg.sender == owner);
-        super.setSwapRouter(_router);
+        emit SwapRouterChanged(swapRouter, _router);
+        swapRouter = _router;
     }
 
-    /// @inheritdoc MauvePermissions
-    function setPositionManager(address _positionManager) public override(MauvePermissions) {
+    // @inheritdoc IMauvePermissions
+    function setPositionManager(address _positionManager) external override {
         require(msg.sender == owner);
-        super.setPositionManager(_positionManager);
+        emit PositionManagerChanged(positionManager, _positionManager );
+        positionManager = _positionManager;
     }
 
     /// @inheritdoc IUniswapV3Factory
