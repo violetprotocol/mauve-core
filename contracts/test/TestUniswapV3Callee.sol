@@ -90,12 +90,32 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 
     function mint(
         address pool,
-        address recipient,
+        address,
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
     ) external {
-        IUniswapV3Pool(pool).mint(recipient, tickLower, tickUpper, amount, abi.encode(msg.sender));
+        IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, amount, abi.encode(msg.sender));
+    }
+
+    function burn(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount
+    ) external {
+        IUniswapV3Pool(pool).burn(tickLower, tickUpper, amount);
+    }
+
+     function collect(
+        address pool,
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount0Requested,
+        uint128 amount1Requested
+    ) external returns (uint128 amount0, uint128 amount1) {
+        (amount0, amount1) = IUniswapV3Pool(pool).collect(recipient, tickLower, tickUpper, amount0Requested, amount1Requested);
     }
 
     event MintCallback(uint256 amount0Owed, uint256 amount1Owed);

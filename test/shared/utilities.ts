@@ -94,6 +94,20 @@ export type MintFunction = (
   tickUpper: BigNumberish,
   liquidity: BigNumberish
 ) => Promise<ContractTransaction>
+export type BurnFunction = (
+  tickLower: BigNumberish,
+  tickUpper: BigNumberish,
+  liquidity: BigNumberish
+) => Promise<ContractTransaction>
+
+export type CollectFunction = (
+  recipient: string,
+  tickLower: BigNumberish,
+  tickUpper: BigNumberish,
+  amount0Requested: BigNumberish,
+  amount1Requested: BigNumberish
+) => Promise<ContractTransaction>
+
 export interface PoolFunctions {
   swapToLowerPrice: SwapToPriceFunction
   swapToHigherPrice: SwapToPriceFunction
@@ -103,6 +117,8 @@ export interface PoolFunctions {
   swap1ForExact0: SwapFunction
   flash: FlashFunction
   mint: MintFunction
+  burn: BurnFunction
+  collect: CollectFunction
 }
 export function createPoolFunctions({
   swapTarget,
@@ -184,10 +200,20 @@ export function createPoolFunctions({
     return swap(token1, [0, amount], to, sqrtPriceLimitX96)
   }
 
-  const mint: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
+  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity) => {
     await token0.approve(swapTarget.address, constants.MaxUint256)
     await token1.approve(swapTarget.address, constants.MaxUint256)
+    // recipient is not used
+    const recipient = constants.AddressZero
     return swapTarget.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
+  }
+
+  const burn: BurnFunction = async (tickLower, tickUpper, amount) => {
+    return swapTarget.burn(pool.address, tickLower, tickUpper, amount)
+  }
+
+  const collect: CollectFunction = async (recipient, tickLower, tickUpper, amount0Requested, amount1Requested) => {
+    return swapTarget.collect(pool.address, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
   }
 
   const flash: FlashFunction = async (amount0, amount1, to, pay0?: BigNumberish, pay1?: BigNumberish) => {
@@ -218,6 +244,8 @@ export function createPoolFunctions({
     swap1ForExact0,
     mint,
     flash,
+    burn,
+    collect,
   }
 }
 
