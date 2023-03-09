@@ -71,7 +71,7 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
     // @inheritdoc IMauvePermissions
     function setPositionManager(address _positionManager) external override {
         require(msg.sender == owner);
-        emit PositionManagerChanged(positionManager, _positionManager );
+        emit PositionManagerChanged(positionManager, _positionManager);
         positionManager = _positionManager;
     }
 

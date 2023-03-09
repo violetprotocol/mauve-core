@@ -107,7 +107,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         IUniswapV3Pool(pool).burn(tickLower, tickUpper, amount);
     }
 
-     function collect(
+    function collect(
         address pool,
         address recipient,
         int24 tickLower,
@@ -115,7 +115,13 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         uint128 amount0Requested,
         uint128 amount1Requested
     ) external returns (uint128 amount0, uint128 amount1) {
-        (amount0, amount1) = IUniswapV3Pool(pool).collect(recipient, tickLower, tickUpper, amount0Requested, amount1Requested);
+        (amount0, amount1) = IUniswapV3Pool(pool).collect(
+            recipient,
+            tickLower,
+            tickUpper,
+            amount0Requested,
+            amount1Requested
+        );
     }
 
     event MintCallback(uint256 amount0Owed, uint256 amount1Owed);
