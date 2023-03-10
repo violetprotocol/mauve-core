@@ -121,7 +121,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         require(msg.sender == IMauvePermissions(factory).swapRouter(), 'onlySwapRouter');
     }
 
-    /// @dev Prevents calling a function from anyone except the address returned by IMauvePermissions#swapRouter()
+    /// @dev Prevents calling a function from anyone except the address returned by IMauvePermissions#positionManager()
     modifier onlyPositionManager {
         _;
         require(msg.sender == IMauvePermissions(factory).positionManager(), 'onlyPositionManager');
