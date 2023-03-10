@@ -521,13 +521,17 @@ describe('UniswapV3Pool', () => {
       })
 
       it('poke is not allowed on uninitialized position', async () => {
-        await mint(other.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
+        // Creates a first position with range 1
+        await mint(other.address, minTick + tickSpacing, maxTick - tickSpacing * 2, expandTo18Decimals(1))
+
         await swapExact0For1(expandTo18Decimals(1).div(10), swapTarget.address)
         await swapExact1For0(expandTo18Decimals(1).div(100), swapTarget.address)
 
+        // Trying to burn with range 2 (not initialized)
         // missing revert reason due to hardhat
         await expect(pool.burn(minTick + tickSpacing, maxTick - tickSpacing, 0)).to.be.reverted
 
+        // Minting position with range 2
         await mint(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing, 1)
         let {
           liquidity,
