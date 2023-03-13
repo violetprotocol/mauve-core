@@ -1842,18 +1842,22 @@ describe('UniswapV3Pool', () => {
     })
   })
 
-  describe.only('fees overflow scenarios', async () => {
+  describe('fees overflow scenarios', async () => {
+    const increaseFeeGrowthGlobal0And1X128 = async (increase: BigNumberish) => {
+      pool.increaseFeeGrowthGlobal0X128(increase)
+      pool.increaseFeeGrowthGlobal1X128(increase)
+    }
     it('up to max uint 128', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       const liquidityAmount = expandTo18Decimals(10)
       await mint(wallet.address, minTick, maxTick, liquidityAmount)
 
-      // Original tests were using flash to increase feeGrowthGlobal{0/1}X128.
-      pool.setFeeGrowthGlobal0X128(MaxUint128.shl(128))
-      pool.setFeeGrowthGlobal1X128(MaxUint128.shl(128))
+      // Original tests were using flash to increase feeGrowthGlobal0X128 and feeGrowthGlobal1X128.
+      await pool.setFeeGrowthGlobal0X128(MaxUint128.shl(128))
+      await pool.setFeeGrowthGlobal1X128(MaxUint128.shl(128))
 
-      token0.transfer(pool.address, MaxUint128)
-      token1.transfer(pool.address, MaxUint128)
+      await token0.transfer(pool.address, MaxUint128)
+      await token1.transfer(pool.address, MaxUint128)
 
       const [feeGrowthGlobal0X128, feeGrowthGlobal1X128] = await Promise.all([
         pool.feeGrowthGlobal0X128(),
@@ -1881,14 +1885,14 @@ describe('UniswapV3Pool', () => {
     it('overflow max uint 128', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       await mint(wallet.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, MaxUint128, MaxUint128)
-      await flash(0, 0, wallet.address, 1, 1)
+      await increaseFeeGrowthGlobal0And1X128(MaxUint128)
+      await increaseFeeGrowthGlobal0And1X128(1)
 
       const [feeGrowthGlobal0X128, feeGrowthGlobal1X128] = await Promise.all([
         pool.feeGrowthGlobal0X128(),
         pool.feeGrowthGlobal1X128(),
       ])
-      // all 1s in first 128 bits
+
       expect(feeGrowthGlobal0X128).to.eq(0)
       expect(feeGrowthGlobal1X128).to.eq(0)
       await burn(minTick, maxTick, 0)
@@ -1908,9 +1912,9 @@ describe('UniswapV3Pool', () => {
     it('overflow max uint 128 after poke burns fees owed to 0', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       await mint(wallet.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, MaxUint128, MaxUint128)
+      await increaseFeeGrowthGlobal0And1X128(MaxUint128)
       await burn(minTick, maxTick, 0)
-      await flash(0, 0, wallet.address, 1, 1)
+      await increaseFeeGrowthGlobal0And1X128(1)
       await burn(minTick, maxTick, 0)
 
       const { amount0, amount1 } = await swapTarget.callStatic.collect(
@@ -1930,13 +1934,13 @@ describe('UniswapV3Pool', () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       await mint(wallet.address, minTick, maxTick, 1)
       await mint(other.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, MaxUint128, 0)
-      await flash(0, 0, wallet.address, MaxUint128, 0)
+      await pool.increaseFeeGrowthGlobal0X128(MaxUint128)
+      await pool.increaseFeeGrowthGlobal0X128(MaxUint128)
       const feeGrowthGlobal0X128 = await pool.feeGrowthGlobal0X128()
       expect(feeGrowthGlobal0X128).to.eq(MaxUint128.shl(128))
-      await flash(0, 0, wallet.address, 2, 0)
+      await pool.increaseFeeGrowthGlobal0X128(2)
       await burn(minTick, maxTick, 0)
-      await pool.connect(other).burn(minTick, maxTick, 0)
+      await burn(minTick, maxTick, 0)
       let { amount0 } = await swapTarget.callStatic.collect(
         pool.address,
         wallet.address,
@@ -1946,24 +1950,25 @@ describe('UniswapV3Pool', () => {
         MaxUint128
       )
       expect(amount0, 'amount0 of wallet').to.eq(0)
-      ;({ amount0 } = await pool
+      ;({ amount0 } = await swapTarget
         .connect(other)
-        .callStatic.collect(other.address, minTick, maxTick, MaxUint128, MaxUint128))
+        .callStatic.collect(pool.address, other.address, minTick, maxTick, MaxUint128, MaxUint128))
       expect(amount0, 'amount0 of other').to.eq(0)
     })
 
     it('two positions 1 wei of fees apart overflows exactly once', async () => {
+      const maxTickSecondPosition = getMaxTick(maxTick - tickSpacing)
       await pool.initialize(encodePriceSqrt(1, 1))
       await mint(wallet.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, 1, 0)
-      await mint(other.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, MaxUint128, 0)
-      await flash(0, 0, wallet.address, MaxUint128, 0)
+      await pool.increaseFeeGrowthGlobal0X128(1)
+      await mint(other.address, minTick, maxTickSecondPosition, 1)
+      await pool.increaseFeeGrowthGlobal0X128(MaxUint128)
+      await pool.increaseFeeGrowthGlobal0X128(MaxUint128)
       const feeGrowthGlobal0X128 = await pool.feeGrowthGlobal0X128()
       expect(feeGrowthGlobal0X128).to.eq(0)
-      await flash(0, 0, wallet.address, 2, 0)
+      await pool.increaseFeeGrowthGlobal0X128(2)
       await burn(minTick, maxTick, 0)
-      await pool.connect(other).burn(minTick, maxTick, 0)
+      await burn(minTick, maxTickSecondPosition, 0)
       let { amount0 } = await swapTarget.callStatic.collect(
         pool.address,
         wallet.address,
@@ -1973,9 +1978,14 @@ describe('UniswapV3Pool', () => {
         MaxUint128
       )
       expect(amount0, 'amount0 of wallet').to.eq(1)
-      ;({ amount0 } = await pool
-        .connect(other)
-        .callStatic.collect(other.address, minTick, maxTick, MaxUint128, MaxUint128))
+      ;({ amount0 } = await swapTarget.callStatic.collect(
+        pool.address,
+        other.address,
+        minTick,
+        maxTickSecondPosition,
+        MaxUint128,
+        MaxUint128
+      ))
       expect(amount0, 'amount0 of other').to.eq(0)
     })
   })
