@@ -533,13 +533,8 @@ describe('UniswapV3Pool', () => {
 
         // Minting position with range 2
         await mint(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing, 1)
-        let {
-          liquidity,
-          feeGrowthInside0LastX128,
-          feeGrowthInside1LastX128,
-          tokensOwed1,
-          tokensOwed0,
-        } = await pool.positions(getPositionKey(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing))
+        let { liquidity, feeGrowthInside0LastX128, feeGrowthInside1LastX128, tokensOwed1, tokensOwed0 } =
+          await pool.positions(getPositionKey(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing))
         expect(liquidity).to.eq(1)
         expect(feeGrowthInside0LastX128).to.eq('102084710076281216349243831104605583')
         expect(feeGrowthInside1LastX128).to.eq('10208471007628121634924383110460558')
@@ -547,13 +542,8 @@ describe('UniswapV3Pool', () => {
         expect(tokensOwed1, 'tokens owed 1 before').to.eq(0)
 
         await burn(minTick + tickSpacing, maxTick - tickSpacing, 1)
-        ;({
-          liquidity,
-          feeGrowthInside0LastX128,
-          feeGrowthInside1LastX128,
-          tokensOwed1,
-          tokensOwed0,
-        } = await pool.positions(getPositionKey(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing)))
+        ;({ liquidity, feeGrowthInside0LastX128, feeGrowthInside1LastX128, tokensOwed1, tokensOwed0 } =
+          await pool.positions(getPositionKey(swapTarget.address, minTick + tickSpacing, maxTick - tickSpacing)))
         expect(liquidity).to.eq(0)
         expect(feeGrowthInside0LastX128).to.eq('102084710076281216349243831104605583')
         expect(feeGrowthInside1LastX128).to.eq('10208471007628121634924383110460558')
@@ -582,19 +572,20 @@ describe('UniswapV3Pool', () => {
     it('does not clear the position fee growth snapshot if no more liquidity', async () => {
       // some activity that would make the ticks non-zero
       await pool.advanceTime(10)
-      await mint(other.address, minTick, maxTick, expandTo18Decimals(1))
+      await mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))
       await swapExact0For1(expandTo18Decimals(1), wallet.address)
       await swapExact1For0(expandTo18Decimals(1), wallet.address)
-      await burn(minTick, maxTick, expandTo18Decimals(1))
+      await burn(minTick, maxTick, expandTo18Decimals(1).add(initializeLiquidityAmount))
+
       const {
-        liquidity,
+        liquidity: liqAfterBurn,
         tokensOwed0,
         tokensOwed1,
         feeGrowthInside0LastX128,
         feeGrowthInside1LastX128,
       } = await pool.positions(getPositionKey(swapTarget.address, minTick, maxTick))
 
-      expect(liquidity).to.eq(0)
+      expect(liqAfterBurn).to.eq(0)
       expect(tokensOwed0).to.not.eq(0)
       expect(tokensOwed1).to.not.eq(0)
       expect(feeGrowthInside0LastX128).to.eq('340282366920938463463374607431768211')
@@ -1620,12 +1611,8 @@ describe('UniswapV3Pool', () => {
         expect(observationCardinality).to.eq(1)
         expect(observationIndex).to.eq(0)
         expect(observationCardinalityNext).to.eq(1)
-        const {
-          secondsPerLiquidityCumulativeX128,
-          tickCumulative,
-          initialized,
-          blockTimestamp,
-        } = await pool.observations(0)
+        const { secondsPerLiquidityCumulativeX128, tickCumulative, initialized, blockTimestamp } =
+          await pool.observations(0)
         expect(secondsPerLiquidityCumulativeX128).to.eq(0)
         expect(tickCumulative).to.eq(0)
         expect(initialized).to.eq(true)
@@ -1745,22 +1732,16 @@ describe('UniswapV3Pool', () => {
       await expect(pool.snapshotCumulativesInside(tickLower, tickUpper + tickSpacing)).to.be.reverted
     })
     it('is zero immediately after initialize', async () => {
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(0)
       expect(tickCumulativeInside).to.eq(0)
       expect(secondsInside).to.eq(0)
     })
     it('increases by expected amount when time elapses in the range', async () => {
       await pool.advanceTime(5)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(5).shl(128).div(10))
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(0)
       expect(secondsInside).to.eq(5)
@@ -1769,11 +1750,8 @@ describe('UniswapV3Pool', () => {
       await pool.advanceTime(5)
       await swapToHigherPrice(encodePriceSqrt(2, 1), wallet.address)
       await pool.advanceTime(7)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(5).shl(128).div(10))
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(0)
       expect(secondsInside).to.eq(5)
@@ -1782,11 +1760,8 @@ describe('UniswapV3Pool', () => {
       await pool.advanceTime(5)
       await swapToLowerPrice(encodePriceSqrt(1, 2), wallet.address)
       await pool.advanceTime(7)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(5).shl(128).div(10))
       // tick is 0 for 5 seconds, then not in range
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(0)
@@ -1797,11 +1772,8 @@ describe('UniswapV3Pool', () => {
       await pool.advanceTime(5)
       await swapToHigherPrice(encodePriceSqrt(1, 1), wallet.address)
       await pool.advanceTime(7)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(7).shl(128).div(10))
       // tick is not in range then tick is 0 for 7 seconds
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(0)
@@ -1812,11 +1784,8 @@ describe('UniswapV3Pool', () => {
       await pool.advanceTime(5)
       await swapToLowerPrice(encodePriceSqrt(1, 1), wallet.address)
       await pool.advanceTime(7)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(7).shl(128).div(10))
       expect((await pool.slot0()).tick).to.eq(-1) // justify the -7 tick cumulative inside value
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(-7)
@@ -1827,11 +1796,8 @@ describe('UniswapV3Pool', () => {
       await mint(wallet.address, tickUpper, getMaxTick(tickSpacing), 15)
       await swapToHigherPrice(encodePriceSqrt(2, 1), wallet.address)
       await pool.advanceTime(8)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickUpper, getMaxTick(tickSpacing))
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickUpper, getMaxTick(tickSpacing))
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(8).shl(128).div(15))
       // the tick of 2/1 is 6931
       // 8 seconds * 6931 = 55448
@@ -1843,11 +1809,8 @@ describe('UniswapV3Pool', () => {
       await pool.advanceTime(5)
       await swapToHigherPrice(encodePriceSqrt(2, 1), wallet.address)
       await pool.advanceTime(8)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(tickLower, tickUpper)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(tickLower, tickUpper)
       expect(secondsPerLiquidityInsideX128).to.eq(BigNumber.from(5).shl(128).div(25))
       expect(tickCumulativeInside, 'tickCumulativeInside').to.eq(0)
       expect(secondsInside).to.eq(5)
@@ -1864,11 +1827,8 @@ describe('UniswapV3Pool', () => {
       // 13 seconds in starting range, then 3 seconds in newly minted range
       await swapToLowerPrice(encodePriceSqrt(1, 2), wallet.address)
       await pool.advanceTime(3)
-      const {
-        secondsPerLiquidityInsideX128,
-        tickCumulativeInside,
-        secondsInside,
-      } = await pool.snapshotCumulativesInside(getMinTick(tickSpacing), tickLower)
+      const { secondsPerLiquidityInsideX128, tickCumulativeInside, secondsInside } =
+        await pool.snapshotCumulativesInside(getMinTick(tickSpacing), tickLower)
       const expectedDiffSecondsPerLiquidity = BigNumber.from(3).shl(128).div(15)
       expect(secondsPerLiquidityInsideX128.sub(secondsPerLiquidityInsideX128Start)).to.eq(
         expectedDiffSecondsPerLiquidity
