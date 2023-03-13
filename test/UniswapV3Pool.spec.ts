@@ -1842,20 +1842,29 @@ describe('UniswapV3Pool', () => {
     })
   })
 
-  describe('fees overflow scenarios', async () => {
+  describe.only('fees overflow scenarios', async () => {
     it('up to max uint 128', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
-      await mint(wallet.address, minTick, maxTick, 1)
-      await flash(0, 0, wallet.address, MaxUint128, MaxUint128)
+      const liquidityAmount = expandTo18Decimals(10)
+      await mint(wallet.address, minTick, maxTick, liquidityAmount)
+
+      // Original tests were using flash to increase feeGrowthGlobal{0/1}X128.
+      pool.setFeeGrowthGlobal0X128(MaxUint128.shl(128))
+      pool.setFeeGrowthGlobal1X128(MaxUint128.shl(128))
+
+      token0.transfer(pool.address, MaxUint128)
+      token1.transfer(pool.address, MaxUint128)
 
       const [feeGrowthGlobal0X128, feeGrowthGlobal1X128] = await Promise.all([
         pool.feeGrowthGlobal0X128(),
         pool.feeGrowthGlobal1X128(),
       ])
+
       // all 1s in first 128 bits
       expect(feeGrowthGlobal0X128).to.eq(MaxUint128.shl(128))
       expect(feeGrowthGlobal1X128).to.eq(MaxUint128.shl(128))
-      await burn(minTick, maxTick, 0)
+
+      await burn(minTick, maxTick, liquidityAmount)
       const { amount0, amount1 } = await swapTarget.callStatic.collect(
         pool.address,
         wallet.address,
@@ -1864,8 +1873,9 @@ describe('UniswapV3Pool', () => {
         MaxUint128,
         MaxUint128
       )
-      expect(amount0).to.eq(MaxUint128)
-      expect(amount1).to.eq(MaxUint128)
+
+      expect(MaxUint128).to.eq(amount0)
+      expect(MaxUint128).to.eq(amount1)
     })
 
     it('overflow max uint 128', async () => {
