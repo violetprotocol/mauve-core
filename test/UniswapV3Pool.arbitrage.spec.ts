@@ -82,13 +82,19 @@ describe('UniswapV3Pool arbitrage tests', () => {
             await fix.token0.transfer(arbitrageur.address, BigNumber.from(2).pow(254))
             await fix.token1.transfer(arbitrageur.address, BigNumber.from(2).pow(254))
 
-            const { swapExact0For1, swapToHigherPrice, swapToLowerPrice, swapExact1For0, mint, burn } =
-              await createPoolFunctions({
-                swapTarget: fix.swapTargetCallee,
-                token0: fix.token0,
-                token1: fix.token1,
-                pool,
-              })
+            const {
+              swapExact0For1,
+              swapToHigherPrice,
+              swapToLowerPrice,
+              swapExact1For0,
+              mint,
+              burn,
+            } = await createPoolFunctions({
+              swapTarget: fix.swapTargetCallee,
+              token0: fix.token0,
+              token1: fix.token1,
+              pool,
+            })
 
             const tickMathFactory = await ethers.getContractFactory('TickMathTest')
             const tickMath = (await tickMathFactory.deploy()) as TickMathTest
@@ -269,15 +275,17 @@ describe('UniswapV3Pool arbitrage tests', () => {
                 arbBalance1 = arbBalance1.add(amount1Burn)
 
                 // add the fees as well
-                const { amount0: amount0CollectAndBurn, amount1: amount1CollectAndBurn } =
-                  await swapTarget.callStatic.collect(
-                    pool.address,
-                    arbitrageur.address,
-                    tickLower,
-                    tickUpper,
-                    MaxUint128,
-                    MaxUint128
-                  )
+                const {
+                  amount0: amount0CollectAndBurn,
+                  amount1: amount1CollectAndBurn,
+                } = await swapTarget.callStatic.collect(
+                  pool.address,
+                  arbitrageur.address,
+                  tickLower,
+                  tickUpper,
+                  MaxUint128,
+                  MaxUint128
+                )
                 const [amount0Collect, amount1Collect] = [
                   amount0CollectAndBurn.sub(amount0Burn),
                   amount1CollectAndBurn.sub(amount1Burn),

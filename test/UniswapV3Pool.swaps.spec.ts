@@ -461,12 +461,10 @@ describe('UniswapV3Pool swap tests', () => {
   for (const poolCase of TEST_POOLS) {
     describe(poolCase.description, () => {
       const poolCaseFixture = async () => {
-        const {
-          createPool,
-          token0,
-          token1,
-          swapTargetCallee: swapTarget,
-        } = await poolFixture([wallet], waffle.provider)
+        const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
+          [wallet],
+          waffle.provider
+        )
         const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
         const poolFunctions = createPoolFunctions({ swapTarget, token0, token1, pool })
         const { mint, burn, collect } = poolFunctions
@@ -497,8 +495,17 @@ describe('UniswapV3Pool swap tests', () => {
       let collect: CollectFunction
 
       beforeEach('load fixture', async () => {
-        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget, burn, collect } =
-          await loadFixture(poolCaseFixture))
+        ;({
+          token0,
+          token1,
+          pool,
+          poolFunctions,
+          poolBalance0,
+          poolBalance1,
+          swapTarget,
+          burn,
+          collect,
+        } = await loadFixture(poolCaseFixture))
       })
 
       afterEach('check can burn positions', async () => {
