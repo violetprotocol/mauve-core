@@ -58,6 +58,8 @@ describe('UniswapV3Pool', () => {
       poolFixture
     ))
 
+    await factory.setSwapRouter(swapTargetRouter.address)
+
     const createPoolWrapped = async (
       amount: number,
       spacing: number,
