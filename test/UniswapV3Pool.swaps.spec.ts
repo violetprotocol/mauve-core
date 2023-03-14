@@ -20,6 +20,8 @@ import {
   MaxUint128,
   MIN_SQRT_RATIO,
   TICK_SPACINGS,
+  BurnFunction,
+  CollectFunction,
 } from './shared/utilities'
 
 Decimal.config({ toExpNeg: -500, toExpPos: 500 })
@@ -459,16 +461,19 @@ describe('UniswapV3Pool swap tests', () => {
   for (const poolCase of TEST_POOLS) {
     describe(poolCase.description, () => {
       const poolCaseFixture = async () => {
-        const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
-          [wallet],
-          waffle.provider
-        )
+        const {
+          createPool,
+          token0,
+          token1,
+          swapTargetCallee: swapTarget,
+        } = await poolFixture([wallet], waffle.provider)
         const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
         const poolFunctions = createPoolFunctions({ swapTarget, token0, token1, pool })
+        const { mint, burn, collect } = poolFunctions
         await pool.initialize(poolCase.startingPrice)
         // mint all positions
         for (const position of poolCase.positions) {
-          await poolFunctions.mint(wallet.address, position.tickLower, position.tickUpper, position.liquidity)
+          await mint(wallet.address, position.tickLower, position.tickUpper, position.liquidity)
         }
 
         const [poolBalance0, poolBalance1] = await Promise.all([
@@ -476,7 +481,7 @@ describe('UniswapV3Pool swap tests', () => {
           token1.balanceOf(pool.address),
         ])
 
-        return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget }
+        return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget, burn, collect }
       }
 
       let token0: TestERC20
@@ -488,17 +493,18 @@ describe('UniswapV3Pool swap tests', () => {
       let pool: MockTimeUniswapV3Pool
       let swapTarget: TestUniswapV3Callee
       let poolFunctions: PoolFunctions
+      let burn: BurnFunction
+      let collect: CollectFunction
 
       beforeEach('load fixture', async () => {
-        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await loadFixture(
-          poolCaseFixture
-        ))
+        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget, burn, collect } =
+          await loadFixture(poolCaseFixture))
       })
 
       afterEach('check can burn positions', async () => {
         for (const { liquidity, tickUpper, tickLower } of poolCase.positions) {
-          await pool.burn(tickLower, tickUpper, liquidity)
-          await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, tickLower, tickUpper, MaxUint128, MaxUint128)
+          await burn(tickLower, tickUpper, liquidity)
+          await collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, tickLower, tickUpper, MaxUint128, MaxUint128)
         }
       })
 
