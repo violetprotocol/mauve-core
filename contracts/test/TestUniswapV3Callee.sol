@@ -94,8 +94,8 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external {
-        IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, amount, abi.encode(msg.sender));
+    ) external returns (uint256 amount0, uint256 amount1) {
+        return IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, amount, abi.encode(msg.sender));
     }
 
     function burn(
@@ -103,8 +103,8 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external {
-        IUniswapV3Pool(pool).burn(tickLower, tickUpper, amount);
+    ) external returns (uint256 amount0, uint256 amount1) {
+        return IUniswapV3Pool(pool).burn(tickLower, tickUpper, amount);
     }
 
     function collect(
