@@ -20,6 +20,8 @@ import {
   SwapToPriceFunction,
   MAX_SQRT_RATIO,
   MIN_SQRT_RATIO,
+  BurnFunction,
+  CollectFunction,
 } from './shared/utilities'
 
 const createFixtureLoader = waffle.createFixtureLoader
@@ -47,7 +49,7 @@ describe('UniswapV3Pool gas tests', () => {
 
         const pool = await fix.createPool(feeAmount, tickSpacing)
 
-        const { swapExact0For1, swapToHigherPrice, mint, swapToLowerPrice } = await createPoolFunctions({
+        const { swapExact0For1, swapToHigherPrice, mint, swapToLowerPrice, burn, collect } = await createPoolFunctions({
           swapTarget: fix.swapTargetCallee,
           token0: fix.token0,
           token1: fix.token1,
@@ -67,7 +69,7 @@ describe('UniswapV3Pool gas tests', () => {
         expect((await pool.slot0()).tick).to.eq(startingTick)
         expect((await pool.slot0()).sqrtPriceX96).to.eq(startingPrice)
 
-        return { pool, swapExact0For1, mint, swapToHigherPrice, swapToLowerPrice }
+        return { pool, swapExact0For1, mint, burn, collect, swapToHigherPrice, swapToLowerPrice }
       }
 
       let swapExact0For1: SwapFunction
@@ -75,9 +77,13 @@ describe('UniswapV3Pool gas tests', () => {
       let swapToLowerPrice: SwapToPriceFunction
       let pool: MockTimeUniswapV3Pool
       let mint: MintFunction
+      let burn: BurnFunction
+      let collect: CollectFunction
 
       beforeEach('load the fixture', async () => {
-        ;({ swapExact0For1, pool, mint, swapToHigherPrice, swapToLowerPrice } = await loadFixture(gasTestFixture))
+        ;({ swapExact0For1, pool, mint, swapToHigherPrice, swapToLowerPrice, burn, collect } = await loadFixture(
+          gasTestFixture
+        ))
       })
 
       describe('#swapExact0For1', () => {
@@ -245,18 +251,18 @@ describe('UniswapV3Pool gas tests', () => {
             })
 
             it('burn when only position using ticks', async () => {
-              await snapshotGasCost(pool.burn(tickLower, tickUpper, expandTo18Decimals(1)))
+              await snapshotGasCost(burn(tickLower, tickUpper, expandTo18Decimals(1)))
             })
             it('partial position burn', async () => {
-              await snapshotGasCost(pool.burn(tickLower, tickUpper, expandTo18Decimals(1).div(2)))
+              await snapshotGasCost(burn(tickLower, tickUpper, expandTo18Decimals(1).div(2)))
             })
             it('entire position burn but other positions are using the ticks', async () => {
               await mint(other.address, tickLower, tickUpper, expandTo18Decimals(1))
-              await snapshotGasCost(pool.burn(tickLower, tickUpper, expandTo18Decimals(1)))
+              await snapshotGasCost(burn(tickLower, tickUpper, expandTo18Decimals(1)))
             })
             it('burn entire position after some time passes', async () => {
               await pool.advanceTime(1)
-              await snapshotGasCost(pool.burn(tickLower, tickUpper, expandTo18Decimals(1)))
+              await snapshotGasCost(burn(tickLower, tickUpper, expandTo18Decimals(1)))
             })
           })
         }
@@ -269,9 +275,9 @@ describe('UniswapV3Pool gas tests', () => {
         it('best case', async () => {
           await mint(wallet.address, tickLower, tickUpper, expandTo18Decimals(1))
           await swapExact0For1(expandTo18Decimals(1).div(100), wallet.address)
-          await pool.burn(tickLower, tickUpper, 0)
+          await burn(tickLower, tickUpper, 0)
           await swapExact0For1(expandTo18Decimals(1).div(100), wallet.address)
-          await snapshotGasCost(pool.burn(tickLower, tickUpper, 0))
+          await snapshotGasCost(burn(tickLower, tickUpper, 0))
         })
       })
 
@@ -282,8 +288,8 @@ describe('UniswapV3Pool gas tests', () => {
         it('close to worst case', async () => {
           await mint(wallet.address, tickLower, tickUpper, expandTo18Decimals(1))
           await swapExact0For1(expandTo18Decimals(1).div(100), wallet.address)
-          await pool.burn(tickLower, tickUpper, 0) // poke to accumulate fees
-          await snapshotGasCost(pool.collect(wallet.address, tickLower, tickUpper, MaxUint128, MaxUint128))
+          await burn(tickLower, tickUpper, 0) // poke to accumulate fees
+          await snapshotGasCost(collect(wallet.address, tickLower, tickUpper, MaxUint128, MaxUint128))
         })
       })
 
