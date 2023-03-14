@@ -8,11 +8,10 @@ import '../libraries/TickMath.sol';
 
 import '../interfaces/callback/IUniswapV3MintCallback.sol';
 import '../interfaces/callback/IUniswapV3SwapCallback.sol';
-import '../interfaces/callback/IUniswapV3FlashCallback.sol';
 
 import '../interfaces/IUniswapV3Pool.sol';
 
-contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, IUniswapV3FlashCallback {
+contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback {
     using SafeCast for uint256;
 
     function getSwapResult(
@@ -162,20 +161,5 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
             IERC20Minimal(IUniswapV3Pool(msg.sender).token0()).transferFrom(sender, msg.sender, amount0Owed);
         if (amount1Owed > 0)
             IERC20Minimal(IUniswapV3Pool(msg.sender).token1()).transferFrom(sender, msg.sender, amount1Owed);
-    }
-
-    event FlashCallback(uint256 fee0, uint256 fee1);
-
-    function uniswapV3FlashCallback(
-        uint256 fee0,
-        uint256 fee1,
-        bytes calldata data
-    ) external override {
-        emit FlashCallback(fee0, fee1);
-
-        (address sender, uint256 pay0, uint256 pay1) = abi.decode(data, (address, uint256, uint256));
-
-        if (pay0 > 0) IERC20Minimal(IUniswapV3Pool(msg.sender).token0()).transferFrom(sender, msg.sender, pay0);
-        if (pay1 > 0) IERC20Minimal(IUniswapV3Pool(msg.sender).token1()).transferFrom(sender, msg.sender, pay1);
     }
 }

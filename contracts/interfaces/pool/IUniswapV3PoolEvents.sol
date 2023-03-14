@@ -79,22 +79,6 @@ interface IUniswapV3PoolEvents {
         int24 tick
     );
 
-    /// @notice Emitted by the pool for any flashes of token0/token1
-    /// @param sender The address that initiated the swap call, and that received the callback
-    /// @param recipient The address that received the tokens from flash
-    /// @param amount0 The amount of token0 that was flashed
-    /// @param amount1 The amount of token1 that was flashed
-    /// @param paid0 The amount of token0 paid for the flash, which can exceed the amount0 plus the fee
-    /// @param paid1 The amount of token1 paid for the flash, which can exceed the amount1 plus the fee
-    event Flash(
-        address indexed sender,
-        address indexed recipient,
-        uint256 amount0,
-        uint256 amount1,
-        uint256 paid0,
-        uint256 paid1
-    );
-
     /// @notice Emitted by the pool for increases to the number of observations that can be stored
     /// @dev observationCardinalityNext is not the observation cardinality until an observation is written at the index
     /// just before a mint/swap/burn.
