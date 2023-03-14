@@ -14,9 +14,9 @@ import './UniswapV3Pool.sol';
 contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3PoolDeployer, NoDelegateCall {
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
     address public override swapRouter;
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
     address public override positionManager;
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
