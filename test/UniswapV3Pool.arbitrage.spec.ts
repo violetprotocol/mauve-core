@@ -4,8 +4,6 @@ import { ethers, waffle } from 'hardhat'
 import { MockTimeUniswapV3Pool } from '../typechain/MockTimeUniswapV3Pool'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TickMathTest } from '../typechain/TickMathTest'
-import { UniswapV3Factory } from '../typechain/UniswapV3Factory'
-import { UniswapV3PoolSwapTest } from '../typechain/UniswapV3PoolSwapTest'
 import { expect } from './shared/expect'
 
 import { poolFixture } from './shared/fixtures'
@@ -92,14 +90,8 @@ describe('UniswapV3Pool arbitrage tests', () => {
                 pool,
               })
 
-            const testerFactory = await ethers.getContractFactory('UniswapV3PoolSwapTest')
-            const tester = (await testerFactory.deploy()) as UniswapV3PoolSwapTest
-
             const tickMathFactory = await ethers.getContractFactory('TickMathTest')
             const tickMath = (await tickMathFactory.deploy()) as TickMathTest
-
-            await fix.token0.approve(tester.address, MaxUint256)
-            await fix.token1.approve(tester.address, MaxUint256)
 
             await pool.initialize(startingPrice)
             if (feeProtocol != 0) await pool.setFeeProtocol(feeProtocol, feeProtocol)
@@ -116,7 +108,6 @@ describe('UniswapV3Pool arbitrage tests', () => {
               swapToHigherPrice,
               swapToLowerPrice,
               swapExact1For0,
-              tester,
               tickMath,
               factory,
               swapTarget: fix.swapTargetCallee,
@@ -130,9 +121,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
           let pool: MockTimeUniswapV3Pool
           let mint: MintFunction
           let burn: BurnFunction
-          let tester: UniswapV3PoolSwapTest
           let tickMath: TickMathTest
-          let factory: UniswapV3Factory
           let swapTarget: TestUniswapV3Callee
 
           beforeEach('load the fixture', async () => {
@@ -144,9 +133,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
               swapToHigherPrice,
               swapToLowerPrice,
               swapExact1For0,
-              tester,
               tickMath,
-              factory,
               swapTarget,
             } = await loadFixture(arbTestFixture))
           })
@@ -161,16 +148,12 @@ describe('UniswapV3Pool arbitrage tests', () => {
             amount0Delta: BigNumber
             amount1Delta: BigNumber
           }> {
-            // TODO: Move getSwapResult function to TestUniswapV3Callee? So we don't have to temporary
-            // set SwapRouter to tester
-            await factory.setSwapRouter(tester.address)
-            const { amount0Delta, amount1Delta, nextSqrtRatio } = await tester.callStatic.getSwapResult(
+            const { amount0Delta, amount1Delta, nextSqrtRatio } = await swapTarget.callStatic.getSwapResult(
               pool.address,
               zeroForOne,
               amountSpecified,
               sqrtPriceLimitX96 ?? (zeroForOne ? MIN_SQRT_RATIO.add(1) : MAX_SQRT_RATIO.sub(1))
             )
-            await factory.setSwapRouter(swapTarget.address)
 
             const executionPrice = zeroForOne
               ? encodePriceSqrt(amount1Delta, amount0Delta.mul(-1))
