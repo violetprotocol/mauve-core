@@ -2,7 +2,9 @@ import Decimal from 'decimal.js'
 import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import { ethers, waffle } from 'hardhat'
 import { MockTimeUniswapV3Pool } from '../typechain/MockTimeUniswapV3Pool'
+import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TickMathTest } from '../typechain/TickMathTest'
+import { UniswapV3Factory } from '../typechain/UniswapV3Factory'
 import { UniswapV3PoolSwapTest } from '../typechain/UniswapV3PoolSwapTest'
 import { expect } from './shared/expect'
 
@@ -23,6 +25,7 @@ import {
   MintFunction,
   SwapFunction,
   TICK_SPACINGS,
+  BurnFunction,
 } from './shared/utilities'
 
 const {
@@ -75,24 +78,19 @@ describe('UniswapV3Pool arbitrage tests', () => {
         describe(`passive liquidity of ${formatTokenAmount(passiveLiquidity)}`, () => {
           const arbTestFixture = async ([wallet, arbitrageur]: Wallet[]) => {
             const fix = await poolFixture([wallet], waffle.provider)
-
+            const factory = fix.factory
             const pool = await fix.createPool(feeAmount, tickSpacing)
 
             await fix.token0.transfer(arbitrageur.address, BigNumber.from(2).pow(254))
             await fix.token1.transfer(arbitrageur.address, BigNumber.from(2).pow(254))
 
-            const {
-              swapExact0For1,
-              swapToHigherPrice,
-              swapToLowerPrice,
-              swapExact1For0,
-              mint,
-            } = await createPoolFunctions({
-              swapTarget: fix.swapTargetCallee,
-              token0: fix.token0,
-              token1: fix.token1,
-              pool,
-            })
+            const { swapExact0For1, swapToHigherPrice, swapToLowerPrice, swapExact1For0, mint, burn } =
+              await createPoolFunctions({
+                swapTarget: fix.swapTargetCallee,
+                token0: fix.token0,
+                token1: fix.token1,
+                pool,
+              })
 
             const testerFactory = await ethers.getContractFactory('UniswapV3PoolSwapTest')
             const tester = (await testerFactory.deploy()) as UniswapV3PoolSwapTest
@@ -110,7 +108,19 @@ describe('UniswapV3Pool arbitrage tests', () => {
             expect((await pool.slot0()).tick).to.eq(startingTick)
             expect((await pool.slot0()).sqrtPriceX96).to.eq(startingPrice)
 
-            return { pool, swapExact0For1, mint, swapToHigherPrice, swapToLowerPrice, swapExact1For0, tester, tickMath }
+            return {
+              pool,
+              swapExact0For1,
+              mint,
+              burn,
+              swapToHigherPrice,
+              swapToLowerPrice,
+              swapExact1For0,
+              tester,
+              tickMath,
+              factory,
+              swapTarget: fix.swapTargetCallee,
+            }
           }
 
           let swapExact0For1: SwapFunction
@@ -119,19 +129,25 @@ describe('UniswapV3Pool arbitrage tests', () => {
           let swapExact1For0: SwapFunction
           let pool: MockTimeUniswapV3Pool
           let mint: MintFunction
+          let burn: BurnFunction
           let tester: UniswapV3PoolSwapTest
           let tickMath: TickMathTest
+          let factory: UniswapV3Factory
+          let swapTarget: TestUniswapV3Callee
 
           beforeEach('load the fixture', async () => {
             ;({
               swapExact0For1,
               pool,
               mint,
+              burn,
               swapToHigherPrice,
               swapToLowerPrice,
               swapExact1For0,
               tester,
               tickMath,
+              factory,
+              swapTarget,
             } = await loadFixture(arbTestFixture))
           })
 
@@ -145,12 +161,16 @@ describe('UniswapV3Pool arbitrage tests', () => {
             amount0Delta: BigNumber
             amount1Delta: BigNumber
           }> {
+            // TODO: Move getSwapResult function to TestUniswapV3Callee? So we don't have to temporary
+            // set SwapRouter to tester
+            await factory.setSwapRouter(tester.address)
             const { amount0Delta, amount1Delta, nextSqrtRatio } = await tester.callStatic.getSwapResult(
               pool.address,
               zeroForOne,
               amountSpecified,
               sqrtPriceLimitX96 ?? (zeroForOne ? MIN_SQRT_RATIO.add(1) : MAX_SQRT_RATIO.sub(1))
             )
+            await factory.setSwapRouter(swapTarget.address)
 
             const executionPrice = zeroForOne
               ? encodePriceSqrt(amount1Delta, amount0Delta.mul(-1))
@@ -255,20 +275,26 @@ describe('UniswapV3Pool arbitrage tests', () => {
                   : await swapExact1For0(inputAmount, wallet.address)
 
                 // burn the arb's liquidity
-                const { amount0: amount0Burn, amount1: amount1Burn } = await pool.callStatic.burn(
+                const { amount0: amount0Burn, amount1: amount1Burn } = await swapTarget.callStatic.burn(
+                  pool.address,
                   tickLower,
                   tickUpper,
                   getMaxLiquidityPerTick(tickSpacing)
                 )
-                await pool.burn(tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))
+                await burn(tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))
                 arbBalance0 = arbBalance0.add(amount0Burn)
                 arbBalance1 = arbBalance1.add(amount1Burn)
 
                 // add the fees as well
-                const {
-                  amount0: amount0CollectAndBurn,
-                  amount1: amount1CollectAndBurn,
-                } = await pool.callStatic.collect(arbitrageur.address, tickLower, tickUpper, MaxUint128, MaxUint128)
+                const { amount0: amount0CollectAndBurn, amount1: amount1CollectAndBurn } =
+                  await swapTarget.callStatic.collect(
+                    pool.address,
+                    arbitrageur.address,
+                    tickLower,
+                    tickUpper,
+                    MaxUint128,
+                    MaxUint128
+                  )
                 const [amount0Collect, amount1Collect] = [
                   amount0CollectAndBurn.sub(amount0Burn),
                   amount1CollectAndBurn.sub(amount1Burn),
