@@ -133,7 +133,7 @@ describe('UniswapV3Factory', () => {
     })
   })
 
-  describe.only('#setPoolDeployer', () => {
+  describe('#setPoolDeployer', () => {
     it('fails if caller is not poolDeployer', async () => {
       await expect(factory.connect(other)["setPoolDeployer(address)"](other.address)).to.be.revertedWith('onlyPoolDeployer')
     })
