@@ -14,9 +14,11 @@ import './UniswapV3Pool.sol';
 contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3PoolDeployer, NoDelegateCall {
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
+    address public override poolDeployer;
+    /// @inheritdoc IMauvePermissions
     address public override swapRouter;
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
     address public override positionManager;
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
@@ -26,6 +28,9 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
     constructor() {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
+
+        poolDeployer = msg.sender;
+        emit PoolDeployerChanged(address(0), msg.sender);
 
         feeAmountTickSpacing[500] = 10;
         emit FeeAmountEnabled(500, 10);
@@ -40,7 +45,7 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external override noDelegateCall returns (address pool) {
+    ) external override noDelegateCall onlyPoolDeployer returns (address pool) {
         require(tokenA != tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0));
@@ -61,18 +66,30 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
         owner = _owner;
     }
 
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
+    function setPoolDeployer(address _poolDeployer) external override {
+        require(msg.sender == poolDeployer, 'onlyPoolDeployer');
+        emit PoolDeployerChanged(poolDeployer, _poolDeployer);
+        poolDeployer = _poolDeployer;
+    }
+
+    /// @inheritdoc IMauvePermissions
     function setSwapRouter(address _router) external override {
         require(msg.sender == owner);
         emit SwapRouterChanged(swapRouter, _router);
         swapRouter = _router;
     }
 
-    // @inheritdoc IMauvePermissions
+    /// @inheritdoc IMauvePermissions
     function setPositionManager(address _positionManager) external override {
         require(msg.sender == owner);
         emit PositionManagerChanged(positionManager, _positionManager);
         positionManager = _positionManager;
+    }
+
+    modifier onlyPoolDeployer{
+        require(msg.sender == poolDeployer, 'onlyPoolDeployer');
+        _;
     }
 
     /// @inheritdoc IUniswapV3Factory

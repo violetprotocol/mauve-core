@@ -115,10 +115,46 @@ describe('UniswapV3Factory', () => {
       await expect(factory.createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], 250)).to.be.reverted
     })
 
+    it('it is not reverted with sensible params', async () => {
+      await expect(factory.createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be.reverted
+    })
+
+    it('fails if create pool is called from non pool-deployer', async () => {
+      await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.be.revertedWith('onlyPoolDeployer')
+    })
+
+    it('succeeds if pool deployer gets changed before createPool is called', async () => {
+      await factory["setPoolDeployer(address)"](other.address)
+      await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be.reverted
+    })
+
     it('gas', async () => {
       await snapshotGasCost(factory.createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM))
     })
   })
+
+  describe.only('#setPoolDeployer', () => {
+    it('fails if caller is not poolDeployer', async () => {
+      await expect(factory.connect(other)["setPoolDeployer(address)"](other.address)).to.be.revertedWith('onlyPoolDeployer')
+    })
+
+    it('updates poolDeployer', async () => {
+      await expect(factory["setPoolDeployer(address)"](other.address)).to.not.be.reverted
+    })
+
+    it('emits event', async () => {
+      await expect(
+        factory["setPoolDeployer(address)"](other.address)
+      ).to.emit(factory, 'PoolDeployerChanged').withArgs(
+        wallet.address, other.address
+      )
+    })
+
+    it('cannot be called by original poolDeployer', async () => {
+      await factory["setPoolDeployer(address)"](other.address)
+      await expect(factory.setPoolDeployer(wallet.address)).to.be.reverted
+    })
+  });
 
   describe('#setOwner', () => {
     it('fails if caller is not owner', async () => {
