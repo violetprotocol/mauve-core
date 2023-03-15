@@ -151,7 +151,7 @@ describe('UniswapV3Factory', () => {
         .withArgs(wallet.address, other.address)
     })
 
-    it('cannot be called by original owner after new pool deployer', async () => {
+    it('can be called by original owner after new pool deployer is set', async () => {
       await factory['setPoolDeployer(address)'](other.address)
       await expect(factory.setPoolDeployer(wallet.address)).to.not.be.reverted
     })
