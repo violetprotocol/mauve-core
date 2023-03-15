@@ -32,7 +32,7 @@ interface IMauvePermissions {
     /// @notice Returns the current poolDeployer of the factory
     /// @dev Can be changed by the current owner via setPoolDeployer
     /// @return The address of the factory poolDeployer
-    function poolDeployer() external view returns(address);
+    function poolDeployer() external view returns (address);
 
     /// @notice Updates the SwapRouter of the Pools
     /// @dev Must be called by the current owner
