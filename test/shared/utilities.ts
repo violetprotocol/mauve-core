@@ -203,6 +203,7 @@ export function createPoolFunctions({
   const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity) => {
     await token0.approve(swapTarget.address, constants.MaxUint256)
     await token1.approve(swapTarget.address, constants.MaxUint256)
+    // TODO: update this function and mint in TestUniswapV3Callee since
     // recipient is not used
     const recipient = constants.AddressZero
     return swapTarget.mint(pool.address, recipient, tickLower, tickUpper, liquidity)

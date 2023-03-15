@@ -161,6 +161,72 @@ describe('UniswapV3Pool', () => {
     })
   })
 
+  describe('#permissions', () => {
+    context('Functions called by PositionManager', () => {
+      beforeEach('initialize the pool', async () => {
+        const initialPrice = encodePriceSqrt(1, 10)
+        await pool.initialize(initialPrice)
+      })
+      afterEach(async () => {
+        // reset to the expected contract
+        await factory.setPositionManager(swapTarget.address)
+      })
+
+      it('mint from the allowed address succeeds', async () => {
+        await expect(mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))).to.not.be.reverted
+      })
+
+      it('mint from non-allowed address fails', async () => {
+        await factory.setPositionManager(wallet.address)
+        await expect(mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith(
+          'onlyPositionManager'
+        )
+      })
+
+      it('collect from the allowed address succeeds ', async () => {
+        await expect(collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))).to.not.be
+          .reverted
+      })
+
+      it('collect from non-allowed address fails ', async () => {
+        await factory.setPositionManager(wallet.address)
+        await expect(
+          collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))
+        ).to.be.revertedWith('onlyPositionManager')
+      })
+
+      it('burn from non-allowed address fails ', async () => {
+        await mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
+
+        await factory.setPositionManager(wallet.address)
+        // For some reason, Hardhat is not surfacing the 'onlyPositionManager' reason string
+        await expect(burn(minTick, maxTick, 100)).to.be.reverted
+      })
+
+      it('burn from the allowed address succeeds ', async () => {
+        await mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))
+        await expect(burn(minTick, maxTick, expandTo18Decimals(1))).to.not.be.reverted
+      })
+    })
+
+    context('Swap', () => {
+      beforeEach('initialize the pool', async () => {
+        const initialPrice = encodePriceSqrt(1, 10)
+        await pool.initialize(initialPrice)
+        await mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))
+      })
+
+      it('swap from the allowed contract succeeds', async () => {
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.not.be.reverted
+      })
+
+      it('swap fails when called by an address not allowed', async () => {
+        await factory.setSwapRouter(wallet.address)
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('onlySwapRouter')
+      })
+    })
+  })
+
   describe('#increaseObservationCardinalityNext', () => {
     it('can only be called after initialize', async () => {
       await expect(pool.increaseObservationCardinalityNext(2)).to.be.revertedWith('LOK')
