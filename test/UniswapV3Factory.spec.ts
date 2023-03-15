@@ -155,6 +155,16 @@ describe('UniswapV3Factory', () => {
       await factory['setPoolDeployer(address)'](other.address)
       await expect(factory.setPoolDeployer(wallet.address)).to.not.be.reverted
     })
+
+    it('cannot be called by previous owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.setPoolDeployer(wallet.address)).to.be.revertedWith('onlyOwner')
+    })
+
+    it('can be called by new owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.connect(other).setPoolDeployer(wallet.address)).to.not.be.reverted
+    })
   })
 
   describe('#setOwner', () => {
