@@ -120,12 +120,15 @@ describe('UniswapV3Factory', () => {
     })
 
     it('fails if create pool is called from non pool-deployer', async () => {
-      await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.be.revertedWith('onlyPoolDeployer')
+      await expect(
+        factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)
+      ).to.be.revertedWith('onlyPoolDeployer')
     })
 
     it('succeeds if pool deployer gets changed before createPool is called', async () => {
-      await factory["setPoolDeployer(address)"](other.address)
-      await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be.reverted
+      await factory['setPoolDeployer(address)'](other.address)
+      await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be
+        .reverted
     })
 
     it('gas', async () => {
@@ -135,26 +138,24 @@ describe('UniswapV3Factory', () => {
 
   describe('#setPoolDeployer', () => {
     it('fails if caller is not poolDeployer', async () => {
-      await expect(factory.connect(other)["setPoolDeployer(address)"](other.address)).to.be.revertedWith('onlyOwner')
+      await expect(factory.connect(other)['setPoolDeployer(address)'](other.address)).to.be.revertedWith('onlyOwner')
     })
 
     it('updates poolDeployer', async () => {
-      await expect(factory["setPoolDeployer(address)"](other.address)).to.not.be.reverted
+      await expect(factory['setPoolDeployer(address)'](other.address)).to.not.be.reverted
     })
 
     it('emits event', async () => {
-      await expect(
-        factory["setPoolDeployer(address)"](other.address)
-      ).to.emit(factory, 'PoolDeployerChanged').withArgs(
-        wallet.address, other.address
-      )
+      await expect(factory['setPoolDeployer(address)'](other.address))
+        .to.emit(factory, 'PoolDeployerChanged')
+        .withArgs(wallet.address, other.address)
     })
 
     it('cannot be called by original owner after new pool deployer', async () => {
-      await factory["setPoolDeployer(address)"](other.address)
+      await factory['setPoolDeployer(address)'](other.address)
       await expect(factory.setPoolDeployer(wallet.address)).to.not.be.reverted
     })
-  });
+  })
 
   describe('#setOwner', () => {
     it('fails if caller is not owner', async () => {
