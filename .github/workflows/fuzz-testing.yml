@@ -57,7 +57,7 @@ jobs:
           sudo chmod +x /usr/bin/echidna-test
 
       - name: Clean Hardhat artifacts
-        run: hardhat clean
+        run: yarn clean
 
       - name: Run ${{ matrix.testName }}
         run: echidna-test . --contract ${{ matrix.testName }} --config echidna.config.yml
