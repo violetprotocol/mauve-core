@@ -68,7 +68,7 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
 
     /// @inheritdoc IMauvePermissions
     function setPoolDeployer(address _poolDeployer) external override {
-        require(msg.sender == poolDeployer, 'onlyPoolDeployer');
+        require(msg.sender == owner, 'onlyOwner');
         emit PoolDeployerChanged(poolDeployer, _poolDeployer);
         poolDeployer = _poolDeployer;
     }

@@ -30,7 +30,7 @@ interface IMauvePermissions {
     function positionManager() external view returns (address);
 
     /// @notice Returns the current poolDeployer of the factory
-    /// @dev Can be changed by the current poolDeployer via setPoolDeployer
+    /// @dev Can be changed by the current owner via setPoolDeployer
     /// @return The address of the factory poolDeployer
     function poolDeployer() external view returns(address);
 
@@ -45,7 +45,7 @@ interface IMauvePermissions {
     function setPositionManager(address _positionManager) external;
 
     /// @notice Updates the poolDeployer of the factory
-    /// @dev Must be called by the current poolDeployer
+    /// @dev Must be called by the current owner
     /// @param _poolDeployer The new poolDeployer of the factory
     function setPoolDeployer(address _poolDeployer) external;
 }

@@ -135,7 +135,7 @@ describe('UniswapV3Factory', () => {
 
   describe('#setPoolDeployer', () => {
     it('fails if caller is not poolDeployer', async () => {
-      await expect(factory.connect(other)["setPoolDeployer(address)"](other.address)).to.be.revertedWith('onlyPoolDeployer')
+      await expect(factory.connect(other)["setPoolDeployer(address)"](other.address)).to.be.revertedWith('onlyOwner')
     })
 
     it('updates poolDeployer', async () => {
@@ -150,9 +150,9 @@ describe('UniswapV3Factory', () => {
       )
     })
 
-    it('cannot be called by original poolDeployer', async () => {
+    it('cannot be called by original owner after new pool deployer', async () => {
       await factory["setPoolDeployer(address)"](other.address)
-      await expect(factory.setPoolDeployer(wallet.address)).to.be.reverted
+      await expect(factory.setPoolDeployer(wallet.address)).to.not.be.reverted
     })
   });
 
