@@ -175,7 +175,6 @@ describe('UniswapV3Pool', () => {
       await factory.setPoolDeployer(other.address)
       await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.not.be.reverted
     })
-
   })
 
   describe('#permissions', () => {

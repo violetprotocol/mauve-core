@@ -87,7 +87,7 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
         positionManager = _positionManager;
     }
 
-    modifier onlyPoolDeployer{
+    modifier onlyPoolDeployer {
         require(msg.sender == poolDeployer, 'onlyPoolDeployer');
         _;
     }
