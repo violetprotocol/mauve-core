@@ -56,5 +56,8 @@ jobs:
           sudo tar -xf /tmp/echidna-test.tar.gz -C /usr/bin
           sudo chmod +x /usr/bin/echidna-test
 
+      - name: Clean Hardhat artifacts
+        run: hardhat clean
+
       - name: Run ${{ matrix.testName }}
         run: echidna-test . --contract ${{ matrix.testName }} --config echidna.config.yml
