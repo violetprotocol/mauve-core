@@ -16,6 +16,14 @@ contract MockTimeUniswapV3Pool is UniswapV3Pool {
         feeGrowthGlobal1X128 = _feeGrowthGlobal1X128;
     }
 
+    function increaseFeeGrowthGlobal0X128(uint256 paid0) external {
+        feeGrowthGlobal0X128 += FullMath.mulDiv(paid0, FixedPoint128.Q128, liquidity);
+    }
+
+    function increaseFeeGrowthGlobal1X128(uint256 paid1) external {
+        feeGrowthGlobal1X128 += FullMath.mulDiv(paid1, FixedPoint128.Q128, liquidity);
+    }
+
     function advanceTime(uint256 by) external {
         time += by;
     }

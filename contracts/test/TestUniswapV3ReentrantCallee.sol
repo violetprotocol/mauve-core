@@ -42,9 +42,9 @@ contract TestUniswapV3ReentrantCallee is IUniswapV3SwapCallback {
         }
 
         // try to reenter flash
-        try IUniswapV3Pool(msg.sender).flash(address(0), 0, 0, new bytes(0)) {} catch Error(string memory reason) {
-            require(keccak256(abi.encode(reason)) == keccak256(abi.encode(expectedReason)));
-        }
+        // try IUniswapV3Pool(msg.sender).flash(address(0), 0, 0, new bytes(0)) {} catch Error(string memory reason) {
+        //     require(keccak256(abi.encode(reason)) == keccak256(abi.encode(expectedReason)));
+        // }
 
         // try to reenter collectProtocol
         try IUniswapV3Pool(msg.sender).collectProtocol(address(0), 0, 0) {} catch Error(string memory reason) {

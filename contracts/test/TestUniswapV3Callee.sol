@@ -8,12 +8,35 @@ import '../libraries/TickMath.sol';
 
 import '../interfaces/callback/IUniswapV3MintCallback.sol';
 import '../interfaces/callback/IUniswapV3SwapCallback.sol';
-import '../interfaces/callback/IUniswapV3FlashCallback.sol';
 
 import '../interfaces/IUniswapV3Pool.sol';
 
-contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, IUniswapV3FlashCallback {
+contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback {
     using SafeCast for uint256;
+
+    function getSwapResult(
+        address pool,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96
+    )
+        external
+        returns (
+            int256 amount0Delta,
+            int256 amount1Delta,
+            uint160 nextSqrtRatio
+        )
+    {
+        (amount0Delta, amount1Delta) = IUniswapV3Pool(pool).swap(
+            address(0),
+            zeroForOne,
+            amountSpecified,
+            sqrtPriceLimitX96,
+            abi.encode(msg.sender)
+        );
+
+        (nextSqrtRatio, , , , , , ) = IUniswapV3Pool(pool).slot0();
+    }
 
     function swapExact0For1(
         address pool,
@@ -90,12 +113,38 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 
     function mint(
         address pool,
-        address recipient,
+        address,
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external {
-        IUniswapV3Pool(pool).mint(recipient, tickLower, tickUpper, amount, abi.encode(msg.sender));
+    ) external returns (uint256 amount0, uint256 amount1) {
+        return IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, amount, abi.encode(msg.sender));
+    }
+
+    function burn(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount
+    ) external returns (uint256 amount0, uint256 amount1) {
+        return IUniswapV3Pool(pool).burn(tickLower, tickUpper, amount);
+    }
+
+    function collect(
+        address pool,
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount0Requested,
+        uint128 amount1Requested
+    ) external returns (uint128 amount0, uint128 amount1) {
+        (amount0, amount1) = IUniswapV3Pool(pool).collect(
+            recipient,
+            tickLower,
+            tickUpper,
+            amount0Requested,
+            amount1Requested
+        );
     }
 
     event MintCallback(uint256 amount0Owed, uint256 amount1Owed);
@@ -112,31 +161,5 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
             IERC20Minimal(IUniswapV3Pool(msg.sender).token0()).transferFrom(sender, msg.sender, amount0Owed);
         if (amount1Owed > 0)
             IERC20Minimal(IUniswapV3Pool(msg.sender).token1()).transferFrom(sender, msg.sender, amount1Owed);
-    }
-
-    event FlashCallback(uint256 fee0, uint256 fee1);
-
-    function flash(
-        address pool,
-        address recipient,
-        uint256 amount0,
-        uint256 amount1,
-        uint256 pay0,
-        uint256 pay1
-    ) external {
-        IUniswapV3Pool(pool).flash(recipient, amount0, amount1, abi.encode(msg.sender, pay0, pay1));
-    }
-
-    function uniswapV3FlashCallback(
-        uint256 fee0,
-        uint256 fee1,
-        bytes calldata data
-    ) external override {
-        emit FlashCallback(fee0, fee1);
-
-        (address sender, uint256 pay0, uint256 pay1) = abi.decode(data, (address, uint256, uint256));
-
-        if (pay0 > 0) IERC20Minimal(IUniswapV3Pool(msg.sender).token0()).transferFrom(sender, msg.sender, pay0);
-        if (pay1 > 0) IERC20Minimal(IUniswapV3Pool(msg.sender).token1()).transferFrom(sender, msg.sender, pay1);
     }
 }

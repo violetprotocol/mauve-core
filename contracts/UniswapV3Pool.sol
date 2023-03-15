@@ -22,10 +22,10 @@ import './libraries/SwapMath.sol';
 
 import './interfaces/IUniswapV3PoolDeployer.sol';
 import './interfaces/IUniswapV3Factory.sol';
+import './interfaces/IMauvePermissions.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
-import './interfaces/callback/IUniswapV3FlashCallback.sol';
 
 contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     using LowGasSafeMath for uint256;
@@ -100,7 +100,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
     /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
     /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
-    /// we use balance checks to determine the payment status of interactions such as mint, swap and flash.
+    /// we use balance checks to determine the payment status of interactions such as mint and swap.
     modifier lock() {
         require(slot0.unlocked, 'LOK');
         slot0.unlocked = false;
@@ -112,6 +112,18 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     modifier onlyFactoryOwner() {
         require(msg.sender == IUniswapV3Factory(factory).owner());
         _;
+    }
+
+    /// @dev Prevents calling a function from anyone except the address returned by IMauvePermissions#swapRouter()
+    modifier onlySwapRouter {
+        _;
+        require(msg.sender == IMauvePermissions(factory).swapRouter(), 'onlySwapRouter');
+    }
+
+    /// @dev Prevents calling a function from anyone except the address returned by IMauvePermissions#positionManager()
+    modifier onlyPositionManager {
+        _;
+        require(msg.sender == IMauvePermissions(factory).positionManager(), 'onlyPositionManager');
     }
 
     constructor() {
@@ -460,7 +472,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount,
         bytes calldata data
-    ) external override lock returns (uint256 amount0, uint256 amount1) {
+    ) external override lock onlyPositionManager returns (uint256 amount0, uint256 amount1) {
         require(amount > 0);
         (, int256 amount0Int, int256 amount1Int) =
             _modifyPosition(
@@ -493,7 +505,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount0Requested,
         uint128 amount1Requested
-    ) external override lock returns (uint128 amount0, uint128 amount1) {
+    ) external override lock onlyPositionManager returns (uint128 amount0, uint128 amount1) {
         // we don't need to checkTicks here, because invalid positions will never have non-zero tokensOwed{0,1}
         Position.Info storage position = positions.get(msg.sender, tickLower, tickUpper);
 
@@ -518,7 +530,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external override lock returns (uint256 amount0, uint256 amount1) {
+    ) external override lock onlyPositionManager returns (uint256 amount0, uint256 amount1) {
         (Position.Info storage position, int256 amount0Int, int256 amount1Int) =
             _modifyPosition(
                 ModifyPositionParams({
@@ -599,7 +611,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external override noDelegateCall returns (int256 amount0, int256 amount1) {
+    ) external override noDelegateCall onlySwapRouter returns (int256 amount0, int256 amount1) {
         require(amountSpecified != 0, 'AS');
 
         Slot0 memory slot0Start = slot0;
@@ -785,52 +797,6 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
         emit Swap(msg.sender, recipient, amount0, amount1, state.sqrtPriceX96, state.liquidity, state.tick);
         slot0.unlocked = true;
-    }
-
-    /// @inheritdoc IUniswapV3PoolActions
-    function flash(
-        address recipient,
-        uint256 amount0,
-        uint256 amount1,
-        bytes calldata data
-    ) external override lock noDelegateCall {
-        uint128 _liquidity = liquidity;
-        require(_liquidity > 0, 'L');
-
-        uint256 fee0 = FullMath.mulDivRoundingUp(amount0, fee, 1e6);
-        uint256 fee1 = FullMath.mulDivRoundingUp(amount1, fee, 1e6);
-        uint256 balance0Before = balance0();
-        uint256 balance1Before = balance1();
-
-        if (amount0 > 0) TransferHelper.safeTransfer(token0, recipient, amount0);
-        if (amount1 > 0) TransferHelper.safeTransfer(token1, recipient, amount1);
-
-        IUniswapV3FlashCallback(msg.sender).uniswapV3FlashCallback(fee0, fee1, data);
-
-        uint256 balance0After = balance0();
-        uint256 balance1After = balance1();
-
-        require(balance0Before.add(fee0) <= balance0After, 'F0');
-        require(balance1Before.add(fee1) <= balance1After, 'F1');
-
-        // sub is safe because we know balanceAfter is gt balanceBefore by at least fee
-        uint256 paid0 = balance0After - balance0Before;
-        uint256 paid1 = balance1After - balance1Before;
-
-        if (paid0 > 0) {
-            uint8 feeProtocol0 = slot0.feeProtocol % 16;
-            uint256 fees0 = feeProtocol0 == 0 ? 0 : paid0 / feeProtocol0;
-            if (uint128(fees0) > 0) protocolFees.token0 += uint128(fees0);
-            feeGrowthGlobal0X128 += FullMath.mulDiv(paid0 - fees0, FixedPoint128.Q128, _liquidity);
-        }
-        if (paid1 > 0) {
-            uint8 feeProtocol1 = slot0.feeProtocol >> 4;
-            uint256 fees1 = feeProtocol1 == 0 ? 0 : paid1 / feeProtocol1;
-            if (uint128(fees1) > 0) protocolFees.token1 += uint128(fees1);
-            feeGrowthGlobal1X128 += FullMath.mulDiv(paid1 - fees1, FixedPoint128.Q128, _liquidity);
-        }
-
-        emit Flash(msg.sender, recipient, amount0, amount1, paid0, paid1);
     }
 
     /// @inheritdoc IUniswapV3PoolOwnerActions

@@ -67,6 +67,11 @@ export const poolFixture: Fixture<PoolFixture> = async function (): Promise<Pool
   const swapTargetCallee = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
   const swapTargetRouter = (await routerContractFactory.deploy()) as TestUniswapV3Router
 
+  // Set positionManager address
+  await factory.setPositionManager(swapTargetCallee.address)
+  // Set swapRouter address
+  await factory.setSwapRouter(swapTargetCallee.address)
+
   return {
     token0,
     token1,
