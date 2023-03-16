@@ -126,6 +126,11 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         require(msg.sender == IMauvePermissions(factory).positionManager(), 'onlyPositionManager');
     }
 
+    modifier onlyPoolDeployer {
+        require(msg.sender == IMauvePermissions(factory).poolDeployer(), 'onlyPoolDeployer');
+        _;
+    }
+
     constructor() {
         int24 _tickSpacing;
         (factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
@@ -280,7 +285,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
     /// @inheritdoc IUniswapV3PoolActions
     /// @dev not locked because it initializes unlocked
-    function initialize(uint160 sqrtPriceX96) external override {
+    function initialize(uint160 sqrtPriceX96) external override onlyPoolDeployer {
         require(slot0.sqrtPriceX96 == 0, 'AI');
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);

@@ -121,22 +121,27 @@ describe('UniswapV3Pool', () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       await expect(pool.initialize(encodePriceSqrt(1, 1))).to.be.reverted
     })
+
     it('fails if starting price is too low', async () => {
       await expect(pool.initialize(1)).to.be.revertedWith('R')
       await expect(pool.initialize(MIN_SQRT_RATIO.sub(1))).to.be.revertedWith('R')
     })
+
     it('fails if starting price is too high', async () => {
       await expect(pool.initialize(MAX_SQRT_RATIO)).to.be.revertedWith('R')
       await expect(pool.initialize(BigNumber.from(2).pow(160).sub(1))).to.be.revertedWith('R')
     })
+
     it('can be initialized at MIN_SQRT_RATIO', async () => {
       await pool.initialize(MIN_SQRT_RATIO)
       expect((await pool.slot0()).tick).to.eq(getMinTick(1))
     })
+
     it('can be initialized at MAX_SQRT_RATIO - 1', async () => {
       await pool.initialize(MAX_SQRT_RATIO.sub(1))
       expect((await pool.slot0()).tick).to.eq(getMaxTick(1) - 1)
     })
+
     it('sets initial variables', async () => {
       const price = encodePriceSqrt(1, 2)
       await pool.initialize(price)
@@ -146,6 +151,7 @@ describe('UniswapV3Pool', () => {
       expect(observationIndex).to.eq(0)
       expect((await pool.slot0()).tick).to.eq(-6932)
     })
+
     it('initializes the first observations slot', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
       checkObservationEquals(await pool.observations(0), {
@@ -155,9 +161,19 @@ describe('UniswapV3Pool', () => {
         tickCumulative: 0,
       })
     })
+
     it('emits a Initialized event with the input tick', async () => {
       const sqrtPriceX96 = encodePriceSqrt(1, 2)
       await expect(pool.initialize(sqrtPriceX96)).to.emit(pool, 'Initialize').withArgs(sqrtPriceX96, -6932)
+    })
+
+    it('fails if initialize is called from non pool-deployer', async () => {
+      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('onlyPoolDeployer')
+    })
+
+    it('succeeds if poolDeployer gets changed before initialize is called', async () => {
+      await factory.setPoolDeployer(other.address)
+      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.not.be.reverted
     })
   })
 
