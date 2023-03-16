@@ -471,7 +471,7 @@ describe('UniswapV3Pool swap tests', () => {
         await pool.initialize(poolCase.startingPrice)
         // mint all positions
         for (const position of poolCase.positions) {
-          await mint(wallet.address, position.tickLower, position.tickUpper, position.liquidity)
+          await mint(position.tickLower, position.tickUpper, position.liquidity)
         }
 
         const [poolBalance0, poolBalance1] = await Promise.all([

@@ -101,7 +101,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
 
             await pool.initialize(startingPrice)
             if (feeProtocol != 0) await pool.setFeeProtocol(feeProtocol, feeProtocol)
-            await mint(wallet.address, minTick, maxTick, passiveLiquidity)
+            await mint(minTick, maxTick, passiveLiquidity)
 
             expect((await pool.slot0()).tick).to.eq(startingTick)
             expect((await pool.slot0()).sqrtPriceX96).to.eq(startingPrice)
@@ -246,9 +246,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
                 const tickUpper = zeroForOne ? firstTickAboveMarginalPrice : tickAfterFirstTickAboveMarginPrice
 
                 // deposit max liquidity at the tick
-                const mintReceipt = await (
-                  await mint(wallet.address, tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))
-                ).wait()
+                const mintReceipt = await(await mint(tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))).wait()
                 // sub the mint costs
                 const { amount0: amount0Mint, amount1: amount1Mint } = pool.interface.decodeEventLog(
                   pool.interface.events['Mint(address,address,int24,int24,uint128,uint256,uint256)'],
