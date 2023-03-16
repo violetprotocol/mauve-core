@@ -274,6 +274,17 @@ describe('UniswapV3Pool', () => {
         await factory.setSwapRouter(wallet.address)
         await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('onlySwapRouter')
       })
+
+      it('swap succeeds after updating the swap router address', async () => {
+        expect(await factory.swapRouter()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setSwapRouter(swapTargetCallee2.address)
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address, undefined, swapTargetCallee2)).to.not.be
+          .reverted
+      })
     })
   })
 
