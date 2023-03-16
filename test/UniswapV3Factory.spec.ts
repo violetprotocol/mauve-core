@@ -172,6 +172,76 @@ describe('UniswapV3Factory', () => {
     })
   })
 
+  describe('#setSwapRouter', () => {
+    it('fails if caller is not owner', async () => {
+      await expect(factory.connect(other)['setSwapRouter(address)'](other.address)).to.be.reverted
+    })
+
+    it('setSwapRouter succeeds when called by owner', async () => {
+      await expect(factory.setSwapRouter(other.address)).to.not.be.reverted
+      expect(await factory.swapRouter()).to.eq(other.address)
+    })
+
+    it('emits event', async () => {
+      await expect(factory['setSwapRouter(address)'](wallet.address))
+        .to.emit(factory, 'SwapRouterChanged')
+        .withArgs(ethers.constants.AddressZero, wallet.address)
+    })
+
+    it('can be called by original owner after new swap router is set', async () => {
+      await factory['setSwapRouter(address)'](other.address)
+
+      await expect(factory.setSwapRouter(wallet.address)).to.not.be.reverted
+      expect(await factory.swapRouter()).to.eq(wallet.address)
+    })
+
+    it('cannot be called by previous owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.setSwapRouter(wallet.address)).to.be.reverted
+    })
+
+    it('can be called by new owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.connect(other).setSwapRouter(other.address)).to.not.be.reverted
+      expect(await factory.swapRouter()).to.eq(other.address)
+    })
+  })
+
+  describe('#setPositionManager', () => {
+    it('fails if caller is not owner', async () => {
+      await expect(factory.connect(other)['setPositionManager(address)'](other.address)).to.be.reverted
+    })
+
+    it('setPositionManager succeeds when called by owner', async () => {
+      await expect(factory.setPositionManager(other.address)).to.not.be.reverted
+      expect(await factory.positionManager()).to.eq(other.address)
+    })
+
+    it('emits event', async () => {
+      await expect(factory['setPositionManager(address)'](wallet.address))
+        .to.emit(factory, 'PositionManagerChanged')
+        .withArgs(ethers.constants.AddressZero, wallet.address)
+    })
+
+    it('can be called by original owner after new position manager is set', async () => {
+      await factory['setPositionManager(address)'](other.address)
+
+      await expect(factory.setPositionManager(wallet.address)).to.not.be.reverted
+      expect(await factory.positionManager()).to.eq(wallet.address)
+    })
+
+    it('cannot be called by previous owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.setPositionManager(wallet.address)).to.be.reverted
+    })
+
+    it('can be called by new owner after owner has changed', async () => {
+      await factory.setOwner(other.address)
+      await expect(factory.connect(other).setPositionManager(other.address)).to.not.be.reverted
+      expect(await factory.positionManager()).to.eq(other.address)
+    })
+  })
+
   describe('#setOwner', () => {
     it('fails if caller is not owner', async () => {
       await expect(factory.connect(other).setOwner(wallet.address)).to.be.reverted

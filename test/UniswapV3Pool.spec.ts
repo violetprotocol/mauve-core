@@ -21,7 +21,6 @@ import {
   SwapFunction,
   MintFunction,
   getMaxLiquidityPerTick,
-  FlashFunction,
   MaxUint128,
   MAX_SQRT_RATIO,
   MIN_SQRT_RATIO,
@@ -64,7 +63,6 @@ describe('UniswapV3Pool', () => {
   let maxTick: number
 
   let mint: MintFunction
-  let flash: FlashFunction
   let burn: BurnFunction
   let collect: CollectFunction
 
@@ -89,7 +87,6 @@ describe('UniswapV3Pool', () => {
         swapExact1For0,
         swap1ForExact0,
         mint,
-        flash,
         burn,
         collect,
       } = createPoolFunctions({
@@ -199,6 +196,16 @@ describe('UniswapV3Pool', () => {
         )
       })
 
+      it('minting succeeds after updating the positions manager address', async () => {
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+
+        await expect(mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not
+          .be.reverted
+      })
+
       it('collect from the allowed address succeeds ', async () => {
         await expect(collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))).to.not.be
           .reverted
@@ -209,6 +216,19 @@ describe('UniswapV3Pool', () => {
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))
         ).to.be.revertedWith('onlyPositionManager')
+      })
+
+      it('collect succeeds after updating the positions manager address', async () => {
+        expect(await factory.positionManager()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+
+        await expect(
+          collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1), swapTargetCallee2)
+        ).to.not.be.reverted
       })
 
       it('burn from non-allowed address fails ', async () => {
@@ -222,6 +242,17 @@ describe('UniswapV3Pool', () => {
       it('burn from the allowed address succeeds ', async () => {
         await mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))
         await expect(burn(minTick, maxTick, expandTo18Decimals(1))).to.not.be.reverted
+      })
+
+      it('burn succeeds after updating the positions manager address', async () => {
+        expect(await factory.positionManager()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+        await mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)
+        await expect(burn(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not.be.reverted
       })
     })
 
@@ -239,6 +270,17 @@ describe('UniswapV3Pool', () => {
       it('swap fails when called by an address not allowed', async () => {
         await factory.setSwapRouter(wallet.address)
         await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('onlySwapRouter')
+      })
+
+      it('swap succeeds after updating the swap router address', async () => {
+        expect(await factory.swapRouter()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setSwapRouter(swapTargetCallee2.address)
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address, undefined, swapTargetCallee2)).to.not.be
+          .reverted
       })
     })
   })
@@ -1499,197 +1541,6 @@ describe('UniswapV3Pool', () => {
     expect(tick, 'pool is at the next tick').to.eq(-24082)
     expect(sqrtPriceX96, 'pool price is still on the p0 boundary').to.eq(p0.sub(1))
     expect(await pool.liquidity(), 'pool has run tick transition and liquidity changed').to.eq(liquidity.mul(2))
-  })
-
-  // [MAUVE-DISABLED] Flash swaps are disabled
-  describe.skip('#flash', () => {
-    it('fails if not initialized', async () => {
-      await expect(flash(100, 200, other.address)).to.be.reverted
-      await expect(flash(100, 0, other.address)).to.be.reverted
-      await expect(flash(0, 200, other.address)).to.be.reverted
-    })
-    it('fails if no liquidity', async () => {
-      await pool.initialize(encodePriceSqrt(1, 1))
-      await expect(flash(100, 200, other.address)).to.be.revertedWith('L')
-      await expect(flash(100, 0, other.address)).to.be.revertedWith('L')
-      await expect(flash(0, 200, other.address)).to.be.revertedWith('L')
-    })
-    describe('after liquidity added', () => {
-      let balance0: BigNumber
-      let balance1: BigNumber
-      beforeEach('add some tokens', async () => {
-        await initializeAtZeroTick(pool)
-        ;[balance0, balance1] = await Promise.all([token0.balanceOf(pool.address), token1.balanceOf(pool.address)])
-      })
-
-      describe('fee off', () => {
-        it('emits an event', async () => {
-          await expect(flash(1001, 2001, other.address))
-            .to.emit(pool, 'Flash')
-            .withArgs(swapTarget.address, other.address, 1001, 2001, 4, 7)
-        })
-
-        it('transfers the amount0 to the recipient', async () => {
-          await expect(flash(100, 200, other.address))
-            .to.emit(token0, 'Transfer')
-            .withArgs(pool.address, other.address, 100)
-        })
-        it('transfers the amount1 to the recipient', async () => {
-          await expect(flash(100, 200, other.address))
-            .to.emit(token1, 'Transfer')
-            .withArgs(pool.address, other.address, 200)
-        })
-        it('can flash only token0', async () => {
-          await expect(flash(101, 0, other.address))
-            .to.emit(token0, 'Transfer')
-            .withArgs(pool.address, other.address, 101)
-            .to.not.emit(token1, 'Transfer')
-        })
-        it('can flash only token1', async () => {
-          await expect(flash(0, 102, other.address))
-            .to.emit(token1, 'Transfer')
-            .withArgs(pool.address, other.address, 102)
-            .to.not.emit(token0, 'Transfer')
-        })
-        it('can flash entire token balance', async () => {
-          await expect(flash(balance0, balance1, other.address))
-            .to.emit(token0, 'Transfer')
-            .withArgs(pool.address, other.address, balance0)
-            .to.emit(token1, 'Transfer')
-            .withArgs(pool.address, other.address, balance1)
-        })
-        it('no-op if both amounts are 0', async () => {
-          await expect(flash(0, 0, other.address)).to.not.emit(token0, 'Transfer').to.not.emit(token1, 'Transfer')
-        })
-        it('fails if flash amount is greater than token balance', async () => {
-          await expect(flash(balance0.add(1), balance1, other.address)).to.be.reverted
-          await expect(flash(balance0, balance1.add(1), other.address)).to.be.reverted
-        })
-        it('calls the flash callback on the sender with correct fee amounts', async () => {
-          await expect(flash(1001, 2002, other.address)).to.emit(swapTarget, 'FlashCallback').withArgs(4, 7)
-        })
-        it('increases the fee growth by the expected amount', async () => {
-          await flash(1001, 2002, other.address)
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(4).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(7).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('fails if original balance not returned in either token', async () => {
-          await expect(flash(1000, 0, other.address, 999, 0)).to.be.reverted
-          await expect(flash(0, 1000, other.address, 0, 999)).to.be.reverted
-        })
-        it('fails if underpays either token', async () => {
-          await expect(flash(1000, 0, other.address, 1002, 0)).to.be.reverted
-          await expect(flash(0, 1000, other.address, 0, 1002)).to.be.reverted
-        })
-        it('allows donating token0', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 567, 0))
-            .to.emit(token0, 'Transfer')
-            .withArgs(wallet.address, pool.address, 567)
-            .to.not.emit(token1, 'Transfer')
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(567).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('allows donating token1', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 0, 678))
-            .to.emit(token1, 'Transfer')
-            .withArgs(wallet.address, pool.address, 678)
-            .to.not.emit(token0, 'Transfer')
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(678).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('allows donating token0 and token1 together', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 789, 1234))
-            .to.emit(token0, 'Transfer')
-            .withArgs(wallet.address, pool.address, 789)
-            .to.emit(token1, 'Transfer')
-            .withArgs(wallet.address, pool.address, 1234)
-
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(789).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(1234).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-      })
-
-      describe('fee on', () => {
-        beforeEach('turn protocol fee on', async () => {
-          await pool.setFeeProtocol(6, 6)
-        })
-
-        it('emits an event', async () => {
-          await expect(flash(1001, 2001, other.address))
-            .to.emit(pool, 'Flash')
-            .withArgs(swapTarget.address, other.address, 1001, 2001, 4, 7)
-        })
-
-        it('increases the fee growth by the expected amount', async () => {
-          await flash(2002, 4004, other.address)
-
-          const { token0: token0ProtocolFees, token1: token1ProtocolFees } = await pool.protocolFees()
-          expect(token0ProtocolFees).to.eq(1)
-          expect(token1ProtocolFees).to.eq(2)
-
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(6).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(11).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('allows donating token0', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 567, 0))
-            .to.emit(token0, 'Transfer')
-            .withArgs(wallet.address, pool.address, 567)
-            .to.not.emit(token1, 'Transfer')
-
-          const { token0: token0ProtocolFees } = await pool.protocolFees()
-          expect(token0ProtocolFees).to.eq(94)
-
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(473).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('allows donating token1', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 0, 678))
-            .to.emit(token1, 'Transfer')
-            .withArgs(wallet.address, pool.address, 678)
-            .to.not.emit(token0, 'Transfer')
-
-          const { token1: token1ProtocolFees } = await pool.protocolFees()
-          expect(token1ProtocolFees).to.eq(113)
-
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(565).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-        it('allows donating token0 and token1 together', async () => {
-          await expect(flash(0, 0, constants.AddressZero, 789, 1234))
-            .to.emit(token0, 'Transfer')
-            .withArgs(wallet.address, pool.address, 789)
-            .to.emit(token1, 'Transfer')
-            .withArgs(wallet.address, pool.address, 1234)
-
-          const { token0: token0ProtocolFees, token1: token1ProtocolFees } = await pool.protocolFees()
-          expect(token0ProtocolFees).to.eq(131)
-          expect(token1ProtocolFees).to.eq(205)
-
-          expect(await pool.feeGrowthGlobal0X128()).to.eq(
-            BigNumber.from(658).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-          expect(await pool.feeGrowthGlobal1X128()).to.eq(
-            BigNumber.from(1029).mul(BigNumber.from(2).pow(128)).div(expandTo18Decimals(2))
-          )
-        })
-      })
-    })
   })
 
   describe('#increaseObservationCardinalityNext', () => {

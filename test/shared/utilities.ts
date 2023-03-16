@@ -78,26 +78,22 @@ export function getPositionKey(address: string, lowerTick: number, upperTick: nu
 export type SwapFunction = (
   amount: BigNumberish,
   to: Wallet | string,
-  sqrtPriceLimitX96?: BigNumberish
+  sqrtPriceLimitX96?: BigNumberish,
+  swapTarget?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 export type SwapToPriceFunction = (sqrtPriceX96: BigNumberish, to: Wallet | string) => Promise<ContractTransaction>
-export type FlashFunction = (
-  amount0: BigNumberish,
-  amount1: BigNumberish,
-  to: Wallet | string,
-  pay0?: BigNumberish,
-  pay1?: BigNumberish
-) => Promise<ContractTransaction>
 export type MintFunction = (
   recipient: string,
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
-  liquidity: BigNumberish
+  liquidity: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 export type BurnFunction = (
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
-  liquidity: BigNumberish
+  liquidity: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 
 export type CollectFunction = (
@@ -105,7 +101,8 @@ export type CollectFunction = (
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
   amount0Requested: BigNumberish,
-  amount1Requested: BigNumberish
+  amount1Requested: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 
 export interface PoolFunctions {
@@ -115,7 +112,6 @@ export interface PoolFunctions {
   swap0ForExact1: SwapFunction
   swapExact1For0: SwapFunction
   swap1ForExact0: SwapFunction
-  flash: FlashFunction
   mint: MintFunction
   burn: BurnFunction
   collect: CollectFunction
@@ -149,18 +145,20 @@ export function createPoolFunctions({
     inputToken: Contract,
     [amountIn, amountOut]: [BigNumberish, BigNumberish],
     to: Wallet | string,
-    sqrtPriceLimitX96?: BigNumberish
+    sqrtPriceLimitX96?: BigNumberish,
+    swapTargetOverride?: TestUniswapV3Callee
   ): Promise<ContractTransaction> {
+    const target = swapTargetOverride ? swapTargetOverride : swapTarget
     const exactInput = amountOut === 0
 
     const method =
       inputToken === token0
         ? exactInput
-          ? swapTarget.swapExact0For1
-          : swapTarget.swap0ForExact1
+          ? target.swapExact0For1
+          : target.swap0ForExact1
         : exactInput
-        ? swapTarget.swapExact1For0
-        : swapTarget.swap1ForExact0
+        ? target.swapExact1For0
+        : target.swap1ForExact0
 
     if (typeof sqrtPriceLimitX96 === 'undefined') {
       if (inputToken === token0) {
@@ -169,7 +167,7 @@ export function createPoolFunctions({
         sqrtPriceLimitX96 = MAX_SQRT_RATIO.sub(1)
       }
     }
-    await inputToken.approve(swapTarget.address, constants.MaxUint256)
+    await inputToken.approve(target.address, constants.MaxUint256)
 
     const toAddress = typeof to === 'string' ? to : to.address
 
@@ -184,56 +182,48 @@ export function createPoolFunctions({
     return swapToSqrtPrice(token1, sqrtPriceX96, to)
   }
 
-  const swapExact0For1: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap(token0, [amount, 0], to, sqrtPriceLimitX96)
+  const swapExact0For1: SwapFunction = (amount, to, sqrtPriceLimitX96, targetOverride) => {
+    return swap(token0, [amount, 0], to, sqrtPriceLimitX96, targetOverride)
   }
 
-  const swap0ForExact1: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap(token0, [0, amount], to, sqrtPriceLimitX96)
+  const swap0ForExact1: SwapFunction = (amount, to, sqrtPriceLimitX96, targetOverride) => {
+    return swap(token0, [0, amount], to, sqrtPriceLimitX96, targetOverride)
   }
 
-  const swapExact1For0: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap(token1, [amount, 0], to, sqrtPriceLimitX96)
+  const swapExact1For0: SwapFunction = (amount, to, sqrtPriceLimitX96, targetOverride) => {
+    return swap(token1, [amount, 0], to, sqrtPriceLimitX96, targetOverride)
   }
 
-  const swap1ForExact0: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap(token1, [0, amount], to, sqrtPriceLimitX96)
+  const swap1ForExact0: SwapFunction = (amount, to, sqrtPriceLimitX96, targetOverride) => {
+    return swap(token1, [0, amount], to, sqrtPriceLimitX96, targetOverride)
   }
 
-  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity) => {
-    await token0.approve(swapTarget.address, constants.MaxUint256)
-    await token1.approve(swapTarget.address, constants.MaxUint256)
+  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity, targetContractOverride) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+
+    await token0.approve(target.address, constants.MaxUint256)
+    await token1.approve(target.address, constants.MaxUint256)
     // TODO: update this function and mint in TestUniswapV3Callee since
     // recipient is not used
     const recipient = constants.AddressZero
-    return swapTarget.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
+    return target.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
   }
 
-  const burn: BurnFunction = async (tickLower, tickUpper, amount) => {
-    return swapTarget.burn(pool.address, tickLower, tickUpper, amount)
+  const burn: BurnFunction = async (tickLower, tickUpper, amount, targetContractOverride) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+    return target.burn(pool.address, tickLower, tickUpper, amount)
   }
 
-  const collect: CollectFunction = async (recipient, tickLower, tickUpper, amount0Requested, amount1Requested) => {
-    return swapTarget.collect(pool.address, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
-  }
-
-  const flash: FlashFunction = async (amount0, amount1, to, pay0?: BigNumberish, pay1?: BigNumberish) => {
-    const fee = await pool.fee()
-    if (typeof pay0 === 'undefined') {
-      pay0 = BigNumber.from(amount0)
-        .mul(fee)
-        .add(1e6 - 1)
-        .div(1e6)
-        .add(amount0)
-    }
-    if (typeof pay1 === 'undefined') {
-      pay1 = BigNumber.from(amount1)
-        .mul(fee)
-        .add(1e6 - 1)
-        .div(1e6)
-        .add(amount1)
-    }
-    return swapTarget.flash(pool.address, typeof to === 'string' ? to : to.address, amount0, amount1, pay0, pay1)
+  const collect: CollectFunction = async (
+    recipient,
+    tickLower,
+    tickUpper,
+    amount0Requested,
+    amount1Requested,
+    targetContractOverride
+  ) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+    return target.collect(pool.address, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
   }
 
   return {
@@ -244,7 +234,6 @@ export function createPoolFunctions({
     swapExact1For0,
     swap1ForExact0,
     mint,
-    flash,
     burn,
     collect,
   }
