@@ -92,12 +92,14 @@ export type MintFunction = (
   recipient: string,
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
-  liquidity: BigNumberish
+  liquidity: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 export type BurnFunction = (
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
-  liquidity: BigNumberish
+  liquidity: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 
 export type CollectFunction = (
@@ -105,7 +107,8 @@ export type CollectFunction = (
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
   amount0Requested: BigNumberish,
-  amount1Requested: BigNumberish
+  amount1Requested: BigNumberish,
+  targetContract?: TestUniswapV3Callee
 ) => Promise<ContractTransaction>
 
 export interface PoolFunctions {
@@ -200,23 +203,35 @@ export function createPoolFunctions({
     return swap(token1, [0, amount], to, sqrtPriceLimitX96)
   }
 
-  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity) => {
-    await token0.approve(swapTarget.address, constants.MaxUint256)
-    await token1.approve(swapTarget.address, constants.MaxUint256)
+  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity, targetContractOverride) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+
+    await token0.approve(target.address, constants.MaxUint256)
+    await token1.approve(target.address, constants.MaxUint256)
     // TODO: update this function and mint in TestUniswapV3Callee since
     // recipient is not used
     const recipient = constants.AddressZero
-    return swapTarget.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
+    return target.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
   }
 
-  const burn: BurnFunction = async (tickLower, tickUpper, amount) => {
-    return swapTarget.burn(pool.address, tickLower, tickUpper, amount)
+  const burn: BurnFunction = async (tickLower, tickUpper, amount, targetContractOverride) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+    return target.burn(pool.address, tickLower, tickUpper, amount)
   }
 
-  const collect: CollectFunction = async (recipient, tickLower, tickUpper, amount0Requested, amount1Requested) => {
-    return swapTarget.collect(pool.address, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
+  const collect: CollectFunction = async (
+    recipient,
+    tickLower,
+    tickUpper,
+    amount0Requested,
+    amount1Requested,
+    targetContractOverride
+  ) => {
+    const target = !!targetContractOverride ? targetContractOverride : swapTarget
+    return target.collect(pool.address, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
   }
 
+  // TODO: Remove
   const flash: FlashFunction = async (amount0, amount1, to, pay0?: BigNumberish, pay1?: BigNumberish) => {
     const fee = await pool.fee()
     if (typeof pay0 === 'undefined') {

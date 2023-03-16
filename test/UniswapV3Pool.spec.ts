@@ -177,7 +177,7 @@ describe('UniswapV3Pool', () => {
     })
   })
 
-  describe('#permissions', () => {
+  describe.only('#permissions', () => {
     context('Functions called by PositionManager', () => {
       beforeEach('initialize the pool', async () => {
         const initialPrice = encodePriceSqrt(1, 10)
@@ -199,6 +199,16 @@ describe('UniswapV3Pool', () => {
         )
       })
 
+      it('minting succeeds after updating the positions manager address', async () => {
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+
+        await expect(mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not
+          .be.reverted
+      })
+
       it('collect from the allowed address succeeds ', async () => {
         await expect(collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))).to.not.be
           .reverted
@@ -209,6 +219,19 @@ describe('UniswapV3Pool', () => {
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))
         ).to.be.revertedWith('onlyPositionManager')
+      })
+
+      it('collect succeeds after updating the positions manager address', async () => {
+        expect(await factory.positionManager()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+
+        await expect(
+          collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1), swapTargetCallee2)
+        ).to.not.be.reverted
       })
 
       it('burn from non-allowed address fails ', async () => {
@@ -222,6 +245,17 @@ describe('UniswapV3Pool', () => {
       it('burn from the allowed address succeeds ', async () => {
         await mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))
         await expect(burn(minTick, maxTick, expandTo18Decimals(1))).to.not.be.reverted
+      })
+
+      it('burn succeeds after updating the positions manager address', async () => {
+        expect(await factory.positionManager()).to.eq(swapTarget.address)
+
+        const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
+        const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
+
+        await factory.setPositionManager(swapTargetCallee2.address)
+        await mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)
+        await expect(burn(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not.be.reverted
       })
     })
 
