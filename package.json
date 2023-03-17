@@ -5,7 +5,7 @@
   "publishConfig": {
     "access": "restricted"
   },
-  "version": "1.2.0",
+  "version": "1.2.1",
   "homepage": "https://mauve.org",
   "keywords": [
     "mauve",
@@ -54,6 +54,7 @@
     "typescript": "^3.7.3"
   },
   "scripts": {
+    "prepare": "yarn clean && yarn compile",
     "compile": "hardhat compile",
     "clean": "hardhat clean",
     "test": "hardhat test",
