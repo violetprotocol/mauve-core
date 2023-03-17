@@ -30,6 +30,17 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         emit FeeAmountEnabled(10000, 200);
     }
 
+    modifier onlyPoolDeployer {
+        // OPD revert reason -> Only Pool Deployer
+        require(msg.sender == roles['poolDeployer'], 'OPD');
+        _;
+    }
+
+    modifier onlyOwner {
+        _checkOwner();
+        _;
+    }
+
     /// @inheritdoc IUniswapV3Factory
     function createPool(
         address tokenA,
@@ -49,31 +60,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         emit PoolCreated(token0, token1, fee, tickSpacing, pool);
     }
 
-    // @TODO SHOULD WE KEEP SET OWNER SEPARATE TO EMIT AN EVENT?
-    // function setOwner(address _owner) external override {
-    //     require(msg.sender == roles['owner']);
-    //     emit OwnerChanged(roles['owner'], _owner);
-    // }
-
     function setRole(address _newRoleAddress, bytes32 roleKey) external override onlyOwner {
         if (roles[roleKey] != address(0)) roles[roleKey] = _newRoleAddress;
-    }
-
-    // Adding the require directly in createPool does not improve contract byte size
-    modifier onlyPoolDeployer {
-        // OPD revert reason -> Only Pool Deployer
-        require(msg.sender == roles['poolDeployer'], 'OPD');
-        _;
-    }
-
-    function _checkOwner() internal view virtual {
-        // OPD revert reason -> Only Pool Deployer
-        require(roles['owner'] == msg.sender, 'OO');
-    }
-
-    modifier onlyOwner {
-        _checkOwner();
-        _;
     }
 
     /// @inheritdoc IUniswapV3Factory
@@ -87,5 +75,10 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
 
         feeAmountTickSpacing[fee] = tickSpacing;
         emit FeeAmountEnabled(fee, tickSpacing);
+    }
+
+    function _checkOwner() internal view virtual {
+        // OO revert reason -> Only Owner
+        require(roles['owner'] == msg.sender, 'OO');
     }
 }

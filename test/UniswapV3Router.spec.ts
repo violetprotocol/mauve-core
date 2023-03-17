@@ -16,10 +16,10 @@ import {
   getMinTick,
   getMaxTick,
   expandTo18Decimals,
-  swapRouterBytes32,
 } from './shared/utilities'
 import { TestUniswapV3Router } from '../typechain/TestUniswapV3Router'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
+import { swapRouterBytes32 } from './shared/roles'
 
 const feeAmount = FeeAmount.MEDIUM
 const tickSpacing = TICK_SPACINGS[feeAmount]

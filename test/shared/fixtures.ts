@@ -8,7 +8,7 @@ import { TestUniswapV3Router } from '../../typechain/TestUniswapV3Router'
 import { MockTimeUniswapV3PoolDeployer } from '../../typechain/MockTimeUniswapV3PoolDeployer'
 
 import { Fixture } from 'ethereum-waffle'
-import { positionManagerBytes32, swapRouterBytes32 } from './utilities'
+import { positionManagerBytes32, swapRouterBytes32 } from './roles'
 
 interface FactoryFixture {
   factory: UniswapV3Factory

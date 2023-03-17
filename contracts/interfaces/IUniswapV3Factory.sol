@@ -4,9 +4,6 @@ pragma solidity >=0.5.0;
 /// @title The interface for the Uniswap V3 Factory
 /// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
 interface IUniswapV3Factory {
-    // @TODO SHOULD WE KEEP THIS EVENT?
-    // event OwnerChanged(address indexed oldOwner, address indexed newOwner);
-
     /// @notice Emitted when a pool is created
     /// @param token0 The first token of the pool by address sort order
     /// @param token1 The second token of the pool by address sort order
@@ -38,7 +35,11 @@ interface IUniswapV3Factory {
     /// @param roleKey The selected role to be changed on the factory
     function setRole(address _newRoleAddress, bytes32 roleKey) external;
 
-    function roles(bytes32 fee) external view returns (address);
+    /// @notice Returns the current address registered as a role on the factory
+    /// @dev Can be called by anyone
+    /// @param roleKey The selected role to be retrieved from the factory 
+    /// @return The address of the respective roleKey
+    function roles(bytes32 roleKey) external view returns (address);
 
     /// @notice Returns the pool address for a given pair of tokens and a fee, or address 0 if it does not exist
     /// @dev tokenA and tokenB may be passed in either token0/token1 or token1/token0 order
@@ -65,8 +66,6 @@ interface IUniswapV3Factory {
         address tokenB,
         uint24 fee
     ) external returns (address pool);
-
-    // function setOwner(address _owner) external;
 
     /// @notice Enables a fee amount with the given tickSpacing
     /// @dev Fee amounts may never be removed once enabled

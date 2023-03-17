@@ -4,6 +4,7 @@ import { expect } from './shared/expect'
 import snapshotGasCost from './shared/snapshotGasCost'
 
 import { FeeAmount, getCreate2Address, TICK_SPACINGS } from './shared/utilities'
+import { ownerBytes32, swapRouterBytes32, positionManagerBytes32, poolDeployerBytes32 } from './shared/roles'
 
 const { constants } = ethers
 
@@ -11,11 +12,6 @@ const TEST_ADDRESSES: [string, string] = [
   '0x1000000000000000000000000000000000000000',
   '0x2000000000000000000000000000000000000000',
 ]
-
-const ownerBytes32 = '0x6f776e6572000000000000000000000000000000000000000000000000000000'
-const poolDeployerBytes32 = '0x706f6f6c4465706c6f7965720000000000000000000000000000000000000000'
-const swapRouterBytes32 = '0x73776170526f7574657200000000000000000000000000000000000000000000'
-const positionManagerBytes32 = '0x706f736974696f6e4d616e616765720000000000000000000000000000000000'
 
 const createFixtureLoader = waffle.createFixtureLoader
 

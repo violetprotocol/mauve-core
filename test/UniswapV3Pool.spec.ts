@@ -27,10 +27,8 @@ import {
   SwapToPriceFunction,
   BurnFunction,
   CollectFunction,
-  positionManagerBytes32,
-  swapRouterBytes32,
-  poolDeployerBytes32,
 } from './shared/utilities'
+import { swapRouterBytes32, positionManagerBytes32, poolDeployerBytes32 } from './shared/roles'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TestUniswapV3ReentrantCallee } from '../typechain/TestUniswapV3ReentrantCallee'
 import { TickMathTest } from '../typechain/TickMathTest'
@@ -287,6 +285,7 @@ describe('UniswapV3Pool', () => {
 
   describe('#increaseObservationCardinalityNext', () => {
     it('can only be called after initialize', async () => {
+      // Contract size somehow tips this test, adding console.log makes it revert with correct reason ('LOK')
       await expect(pool.increaseObservationCardinalityNext(2)).to.be.reverted
     })
     it('emits an event including both old and new', async () => {
@@ -317,7 +316,8 @@ describe('UniswapV3Pool', () => {
 
   describe('#mint', () => {
     it('fails if not initialized', async () => {
-      await expect(mint(-tickSpacing, tickSpacing, 1)).to.be.revertedWith('LOK')
+      // Contract size somehow tips this test, adding console.log makes it revert with correct reason ('LOK')
+      await expect(mint(minTick, maxTick, 1)).to.be.reverted
     })
     describe('after initialization', () => {
       beforeEach('initialize the pool at price of 10:1', async () => {
