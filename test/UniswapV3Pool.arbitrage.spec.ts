@@ -246,7 +246,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
                 const tickUpper = zeroForOne ? firstTickAboveMarginalPrice : tickAfterFirstTickAboveMarginPrice
 
                 // deposit max liquidity at the tick
-                const mintReceipt = await(await mint(tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))).wait()
+                const mintReceipt = await (await mint(tickLower, tickUpper, getMaxLiquidityPerTick(tickSpacing))).wait()
                 // sub the mint costs
                 const { amount0: amount0Mint, amount1: amount1Mint } = pool.interface.decodeEventLog(
                   pool.interface.events['Mint(address,address,int24,int24,uint128,uint256,uint256)'],
