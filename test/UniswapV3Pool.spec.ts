@@ -28,7 +28,7 @@ import {
   BurnFunction,
   CollectFunction,
 } from './shared/utilities'
-import { swapRouterBytes32, positionManagerBytes32, poolDeployerBytes32 } from './shared/roles'
+import { swapRouterBytes32, positionManagerBytes32, poolAdminBytes32 } from './shared/roles'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TestUniswapV3ReentrantCallee } from '../typechain/TestUniswapV3ReentrantCallee'
 import { TickMathTest } from '../typechain/TickMathTest'
@@ -166,11 +166,11 @@ describe('UniswapV3Pool', () => {
     })
 
     it('fails if initialize is called from non pool-deployer', async () => {
-      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('OPD')
+      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('OPA')
     })
 
-    it('succeeds if poolDeployer gets changed before initialize is called', async () => {
-      await factory.setRole(other.address, poolDeployerBytes32)
+    it('succeeds if poolAdmin gets changed before initialize is called', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
       await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.not.be.reverted
     })
   })

@@ -131,7 +131,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('poolDeployer')
     modifier onlyPoolDeployer {
         // OPD revert reason -> Only Pool Deployer
-        require(msg.sender == IUniswapV3Factory(factory).roles('poolDeployer'), 'OPD');
+        require(msg.sender == IUniswapV3Factory(factory).roles('poolAdmin'), 'OPA');
         _;
     }
 

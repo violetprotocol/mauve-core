@@ -4,7 +4,7 @@ import { expect } from './shared/expect'
 import snapshotGasCost from './shared/snapshotGasCost'
 
 import { FeeAmount, getCreate2Address, TICK_SPACINGS } from './shared/utilities'
-import { ownerBytes32, swapRouterBytes32, positionManagerBytes32, poolDeployerBytes32 } from './shared/roles'
+import { ownerBytes32, swapRouterBytes32, positionManagerBytes32, poolAdminBytes32 } from './shared/roles'
 
 const { constants } = ethers
 
@@ -123,11 +123,11 @@ describe('UniswapV3Factory', () => {
     it('fails if create pool is called from non pool-deployer', async () => {
       await expect(
         factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)
-      ).to.be.revertedWith('OPD')
+      ).to.be.revertedWith('OPA')
     })
 
     it('succeeds if pool deployer gets changed before createPool is called', async () => {
-      await factory.setRole(other.address, poolDeployerBytes32)
+      await factory.setRole(other.address, poolAdminBytes32)
       await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be
         .reverted
     })
@@ -137,33 +137,33 @@ describe('UniswapV3Factory', () => {
     })
   })
 
-  describe('#setPoolDeployer', () => {
+  describe('#setPoolAdmin', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other).setRole(other.address, poolDeployerBytes32)).to.be.revertedWith('OO')
+      await expect(factory.connect(other).setRole(other.address, poolAdminBytes32)).to.be.revertedWith('OO')
     })
 
-    it('updates poolDeployer can be called by owner', async () => {
-      await expect(factory.setRole(other.address, poolDeployerBytes32)).to.not.be.reverted
+    it('updates poolAdmin can be called by owner', async () => {
+      await expect(factory.setRole(other.address, poolAdminBytes32)).to.not.be.reverted
     })
 
-    it('poolDeployer is returned correctly after setPoolDeployer', async () => {
-      await factory.setRole(other.address, poolDeployerBytes32)
-      expect(await factory.roles(poolDeployerBytes32)).to.eq(other.address)
+    it('poolAdmin is returned correctly after setPoolAdmin', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
+      expect(await factory.roles(poolAdminBytes32)).to.eq(other.address)
     })
 
     it('can be called by original owner after new pool deployer is set', async () => {
-      await factory.setRole(other.address, poolDeployerBytes32)
-      await expect(factory.setRole(wallet.address, poolDeployerBytes32)).to.not.be.reverted
+      await factory.setRole(other.address, poolAdminBytes32)
+      await expect(factory.setRole(wallet.address, poolAdminBytes32)).to.not.be.reverted
     })
 
     it('cannot be called by previous owner after owner has changed', async () => {
       await factory.setRole(other.address, ownerBytes32)
-      await expect(factory.setRole(wallet.address, poolDeployerBytes32)).to.be.revertedWith('OO')
+      await expect(factory.setRole(wallet.address, poolAdminBytes32)).to.be.revertedWith('OO')
     })
 
     it('can be called by new owner after owner has changed', async () => {
       await factory.setRole(other.address, ownerBytes32)
-      await expect(factory.connect(other).setRole(wallet.address, poolDeployerBytes32)).to.not.be.reverted
+      await expect(factory.connect(other).setRole(wallet.address, poolAdminBytes32)).to.not.be.reverted
     })
   })
 

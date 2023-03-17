@@ -18,9 +18,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
     constructor() {
-        roles['poolDeployer'] = msg.sender;
-        roles['positionManager'] = msg.sender;
-        roles['swapRouter'] = msg.sender;
+        roles['poolAdmin'] = msg.sender;
         roles['owner'] = msg.sender;
         feeAmountTickSpacing[500] = 10;
         emit FeeAmountEnabled(500, 10);
@@ -32,7 +30,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
 
     modifier onlyPoolDeployer {
         // OPD revert reason -> Only Pool Deployer
-        require(msg.sender == roles['poolDeployer'], 'OPD');
+        require(msg.sender == roles['poolAdmin'], 'OPA');
         _;
     }
 
@@ -61,7 +59,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     }
 
     function setRole(address _newRoleAddress, bytes32 roleKey) external override onlyOwner {
-        if (roles[roleKey] != address(0)) roles[roleKey] = _newRoleAddress;
+        emit RoleChanged(roles[roleKey], _newRoleAddress, roleKey);
+        roles[roleKey] = _newRoleAddress;
     }
 
     /// @inheritdoc IUniswapV3Factory

@@ -23,6 +23,12 @@ interface IUniswapV3Factory {
     /// @param tickSpacing The minimum number of ticks between initialized ticks for pools created with the given fee
     event FeeAmountEnabled(uint24 indexed fee, int24 indexed tickSpacing);
 
+    /// @notice Emitted when a role address is changed via the factory
+    /// @param oldRoleAddress The old address that was assigned to the roleChanged
+    /// @param newRoleAddress The new address that is assigned to the roleChanged
+    /// @param roleChanged The role key that was updated with a new address
+    event RoleChanged(address indexed oldRoleAddress, address indexed newRoleAddress, bytes32 roleChanged);
+
     /// @notice Returns the tick spacing for a given fee amount, if enabled, or 0 if not enabled
     /// @dev A fee amount can never be removed, so this value should be hard coded or cached in the calling context
     /// @param fee The enabled fee, denominated in hundredths of a bip. Returns 0 in case of unenabled fee
