@@ -2,7 +2,6 @@
 pragma solidity =0.7.6;
 
 import './interfaces/IUniswapV3Factory.sol';
-import './interfaces/IMauvePermissions.sol';
 
 import './UniswapV3PoolDeployer.sol';
 import './NoDelegateCall.sol';
@@ -11,27 +10,16 @@ import './UniswapV3Pool.sol';
 
 /// @title Canonical Uniswap V3 factory
 /// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
-contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3PoolDeployer, NoDelegateCall {
-    /// @inheritdoc IUniswapV3Factory
-    address public override owner;
-    /// @inheritdoc IMauvePermissions
-    address public override poolDeployer;
-    /// @inheritdoc IMauvePermissions
-    address public override swapRouter;
-    /// @inheritdoc IMauvePermissions
-    address public override positionManager;
+contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCall {
+    mapping(bytes32 => address) public override roles;
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
     constructor() {
-        owner = msg.sender;
-        emit OwnerChanged(address(0), msg.sender);
-
-        poolDeployer = msg.sender;
-        emit PoolDeployerChanged(address(0), msg.sender);
-
+        roles['poolAdmin'] = msg.sender;
+        roles['owner'] = msg.sender;
         feeAmountTickSpacing[500] = 10;
         emit FeeAmountEnabled(500, 10);
         feeAmountTickSpacing[3000] = 60;
@@ -40,12 +28,23 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
         emit FeeAmountEnabled(10000, 200);
     }
 
+    modifier onlyPoolAdmin {
+        // OPD revert reason -> Only Pool Admin
+        require(msg.sender == roles['poolAdmin'], 'OPA');
+        _;
+    }
+
+    modifier onlyOwner {
+        _checkOwner();
+        _;
+    }
+
     /// @inheritdoc IUniswapV3Factory
     function createPool(
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external override noDelegateCall onlyPoolDeployer returns (address pool) {
+    ) external override noDelegateCall onlyPoolAdmin returns (address pool) {
         require(tokenA != tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0));
@@ -59,42 +58,13 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
         emit PoolCreated(token0, token1, fee, tickSpacing, pool);
     }
 
-    /// @inheritdoc IUniswapV3Factory
-    function setOwner(address _owner) external override {
-        require(msg.sender == owner);
-        emit OwnerChanged(owner, _owner);
-        owner = _owner;
-    }
-
-    /// @inheritdoc IMauvePermissions
-    function setPoolDeployer(address _poolDeployer) external override {
-        require(msg.sender == owner, 'onlyOwner');
-        emit PoolDeployerChanged(poolDeployer, _poolDeployer);
-        poolDeployer = _poolDeployer;
-    }
-
-    /// @inheritdoc IMauvePermissions
-    function setSwapRouter(address _router) external override {
-        require(msg.sender == owner);
-        emit SwapRouterChanged(swapRouter, _router);
-        swapRouter = _router;
-    }
-
-    /// @inheritdoc IMauvePermissions
-    function setPositionManager(address _positionManager) external override {
-        require(msg.sender == owner);
-        emit PositionManagerChanged(positionManager, _positionManager);
-        positionManager = _positionManager;
-    }
-
-    modifier onlyPoolDeployer {
-        require(msg.sender == poolDeployer, 'onlyPoolDeployer');
-        _;
+    function setRole(address _newRoleAddress, bytes32 roleKey) external override onlyOwner {
+        emit RoleChanged(roles[roleKey], _newRoleAddress, roleKey);
+        roles[roleKey] = _newRoleAddress;
     }
 
     /// @inheritdoc IUniswapV3Factory
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
-        require(msg.sender == owner);
+    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override onlyOwner {
         require(fee < 1000000);
         // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
         // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
@@ -104,5 +74,10 @@ contract UniswapV3Factory is IUniswapV3Factory, IMauvePermissions, UniswapV3Pool
 
         feeAmountTickSpacing[fee] = tickSpacing;
         emit FeeAmountEnabled(fee, tickSpacing);
+    }
+
+    function _checkOwner() internal view virtual {
+        // OO revert reason -> Only Owner
+        require(roles['owner'] == msg.sender, 'OO');
     }
 }

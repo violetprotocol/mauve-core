@@ -4,6 +4,7 @@ import { expect } from './shared/expect'
 import snapshotGasCost from './shared/snapshotGasCost'
 
 import { FeeAmount, getCreate2Address, TICK_SPACINGS } from './shared/utilities'
+import { ownerBytes32, swapRouterBytes32, positionManagerBytes32, poolAdminBytes32 } from './shared/roles'
 
 const { constants } = ethers
 
@@ -38,7 +39,7 @@ describe('UniswapV3Factory', () => {
   })
 
   it('owner is deployer', async () => {
-    expect(await factory.owner()).to.eq(wallet.address)
+    expect(await factory.roles(ownerBytes32)).to.eq(wallet.address)
   })
 
   it('factory bytecode size', async () => {
@@ -119,14 +120,14 @@ describe('UniswapV3Factory', () => {
       await expect(factory.createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be.reverted
     })
 
-    it('fails if create pool is called from non pool-deployer', async () => {
+    it('fails if create pool is called from non pool-admin', async () => {
       await expect(
         factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)
-      ).to.be.revertedWith('onlyPoolDeployer')
+      ).to.be.revertedWith('OPA')
     })
 
-    it('succeeds if pool deployer gets changed before createPool is called', async () => {
-      await factory['setPoolDeployer(address)'](other.address)
+    it('succeeds if pool admin gets changed before createPool is called', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
       await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be
         .reverted
     })
@@ -136,131 +137,106 @@ describe('UniswapV3Factory', () => {
     })
   })
 
-  describe('#setPoolDeployer', () => {
+  describe('#setPoolAdmin', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other)['setPoolDeployer(address)'](other.address)).to.be.revertedWith('onlyOwner')
+      await expect(factory.connect(other).setRole(other.address, poolAdminBytes32)).to.be.revertedWith('OO')
     })
 
-    it('updates poolDeployer can be called by owner', async () => {
-      await expect(factory['setPoolDeployer(address)'](other.address)).to.not.be.reverted
+    it('updates poolAdmin can be called by owner', async () => {
+      await expect(factory.setRole(other.address, poolAdminBytes32)).to.not.be.reverted
     })
 
-    it('poolDeployer is returned correctly after setPoolDeployer', async () => {
-      await factory.setPoolDeployer(other.address)
-      expect(await factory.poolDeployer()).to.eq(other.address)
+    it('poolAdmin is returned correctly after setPoolAdmin', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
+      expect(await factory.roles(poolAdminBytes32)).to.eq(other.address)
     })
 
-    it('emits event', async () => {
-      await expect(factory['setPoolDeployer(address)'](other.address))
-        .to.emit(factory, 'PoolDeployerChanged')
-        .withArgs(wallet.address, other.address)
-    })
-
-    it('can be called by original owner after new pool deployer is set', async () => {
-      await factory['setPoolDeployer(address)'](other.address)
-      await expect(factory.setPoolDeployer(wallet.address)).to.not.be.reverted
+    it('can be called by original owner after new pool admin is set', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
+      await expect(factory.setRole(wallet.address, poolAdminBytes32)).to.not.be.reverted
     })
 
     it('cannot be called by previous owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.setPoolDeployer(wallet.address)).to.be.revertedWith('onlyOwner')
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.setRole(wallet.address, poolAdminBytes32)).to.be.revertedWith('OO')
     })
 
     it('can be called by new owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.connect(other).setPoolDeployer(wallet.address)).to.not.be.reverted
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.connect(other).setRole(wallet.address, poolAdminBytes32)).to.not.be.reverted
     })
   })
 
   describe('#setSwapRouter', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other)['setSwapRouter(address)'](other.address)).to.be.reverted
+      await expect(factory.connect(other).setRole(other.address, swapRouterBytes32)).to.be.revertedWith('OO')
     })
 
     it('setSwapRouter succeeds when called by owner', async () => {
-      await expect(factory.setSwapRouter(other.address)).to.not.be.reverted
-      expect(await factory.swapRouter()).to.eq(other.address)
-    })
-
-    it('emits event', async () => {
-      await expect(factory['setSwapRouter(address)'](wallet.address))
-        .to.emit(factory, 'SwapRouterChanged')
-        .withArgs(ethers.constants.AddressZero, wallet.address)
+      await expect(factory.setRole(other.address, swapRouterBytes32)).to.not.be.reverted
+      expect(await factory.roles(swapRouterBytes32)).to.eq(other.address)
     })
 
     it('can be called by original owner after new swap router is set', async () => {
-      await factory['setSwapRouter(address)'](other.address)
-
-      await expect(factory.setSwapRouter(wallet.address)).to.not.be.reverted
-      expect(await factory.swapRouter()).to.eq(wallet.address)
+      await factory.setRole(other.address, swapRouterBytes32)
+      await expect(factory.setRole(wallet.address, swapRouterBytes32)).to.not.be.reverted
+      expect(await factory.roles(swapRouterBytes32)).to.eq(wallet.address)
     })
 
     it('cannot be called by previous owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.setSwapRouter(wallet.address)).to.be.reverted
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.setRole(wallet.address, swapRouterBytes32)).to.be.reverted
     })
 
     it('can be called by new owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.connect(other).setSwapRouter(other.address)).to.not.be.reverted
-      expect(await factory.swapRouter()).to.eq(other.address)
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.connect(other).setRole(other.address, swapRouterBytes32)).to.not.be.reverted
+      expect(await factory.roles(swapRouterBytes32)).to.eq(other.address)
     })
   })
 
   describe('#setPositionManager', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other)['setPositionManager(address)'](other.address)).to.be.reverted
+      await expect(factory.connect(other).setRole(other.address, positionManagerBytes32)).to.be.revertedWith('OO')
     })
 
     it('setPositionManager succeeds when called by owner', async () => {
-      await expect(factory.setPositionManager(other.address)).to.not.be.reverted
-      expect(await factory.positionManager()).to.eq(other.address)
-    })
-
-    it('emits event', async () => {
-      await expect(factory['setPositionManager(address)'](wallet.address))
-        .to.emit(factory, 'PositionManagerChanged')
-        .withArgs(ethers.constants.AddressZero, wallet.address)
+      await expect(factory.setRole(other.address, positionManagerBytes32)).to.not.be.reverted
+      expect(await factory.roles(positionManagerBytes32)).to.eq(other.address)
     })
 
     it('can be called by original owner after new position manager is set', async () => {
-      await factory['setPositionManager(address)'](other.address)
+      await factory.setRole(other.address, positionManagerBytes32)
 
-      await expect(factory.setPositionManager(wallet.address)).to.not.be.reverted
-      expect(await factory.positionManager()).to.eq(wallet.address)
+      await expect(factory.setRole(wallet.address, positionManagerBytes32)).to.not.be.reverted
+      expect(await factory.roles(positionManagerBytes32)).to.eq(wallet.address)
     })
 
     it('cannot be called by previous owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.setPositionManager(wallet.address)).to.be.reverted
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.setRole(wallet.address, positionManagerBytes32)).to.be.reverted
     })
 
     it('can be called by new owner after owner has changed', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.connect(other).setPositionManager(other.address)).to.not.be.reverted
-      expect(await factory.positionManager()).to.eq(other.address)
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.connect(other).setRole(other.address, positionManagerBytes32)).to.not.be.reverted
+      expect(await factory.roles(positionManagerBytes32)).to.eq(other.address)
     })
   })
 
   describe('#setOwner', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other).setOwner(wallet.address)).to.be.reverted
+      await expect(factory.connect(other).setRole(wallet.address, ownerBytes32)).to.be.reverted
     })
 
     it('updates owner', async () => {
-      await factory.setOwner(other.address)
-      expect(await factory.owner()).to.eq(other.address)
-    })
-
-    it('emits event', async () => {
-      await expect(factory.setOwner(other.address))
-        .to.emit(factory, 'OwnerChanged')
-        .withArgs(wallet.address, other.address)
+      await factory.setRole(other.address, ownerBytes32)
+      expect(await factory.roles(ownerBytes32)).to.eq(other.address)
     })
 
     it('cannot be called by original owner', async () => {
-      await factory.setOwner(other.address)
-      await expect(factory.setOwner(wallet.address)).to.be.reverted
+      await factory.setRole(other.address, ownerBytes32)
+      await expect(factory.setRole(wallet.address, ownerBytes32)).to.be.reverted
     })
   })
 

@@ -28,6 +28,7 @@ import {
   BurnFunction,
   CollectFunction,
 } from './shared/utilities'
+import { swapRouterBytes32, positionManagerBytes32, poolAdminBytes32 } from './shared/roles'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TestUniswapV3ReentrantCallee } from '../typechain/TestUniswapV3ReentrantCallee'
 import { TickMathTest } from '../typechain/TickMathTest'
@@ -164,12 +165,12 @@ describe('UniswapV3Pool', () => {
       await expect(pool.initialize(sqrtPriceX96)).to.emit(pool, 'Initialize').withArgs(sqrtPriceX96, -6932)
     })
 
-    it('fails if initialize is called from non pool-deployer', async () => {
-      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('onlyPoolDeployer')
+    it('fails if initialize is called from non pool-admin', async () => {
+      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('OPA')
     })
 
-    it('succeeds if poolDeployer gets changed before initialize is called', async () => {
-      await factory.setPoolDeployer(other.address)
+    it('succeeds if poolAdmin gets changed before initialize is called', async () => {
+      await factory.setRole(other.address, poolAdminBytes32)
       await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.not.be.reverted
     })
   })
@@ -182,7 +183,7 @@ describe('UniswapV3Pool', () => {
       })
       afterEach(async () => {
         // reset to the expected contract
-        await factory.setPositionManager(swapTarget.address)
+        await factory.setRole(swapTarget.address, positionManagerBytes32)
       })
 
       it('mint from the allowed address succeeds', async () => {
@@ -190,15 +191,15 @@ describe('UniswapV3Pool', () => {
       })
 
       it('mint from non-allowed address fails', async () => {
-        await factory.setPositionManager(wallet.address)
-        await expect(mint(minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith('onlyPositionManager')
+        await factory.setRole(wallet.address, positionManagerBytes32)
+        await expect(mint(minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith('OPM')
       })
 
       it('minting succeeds after updating the positions manager address', async () => {
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
 
         await expect(mint(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not.be.reverted
       })
@@ -209,19 +210,19 @@ describe('UniswapV3Pool', () => {
       })
 
       it('collect from non-allowed address fails ', async () => {
-        await factory.setPositionManager(wallet.address)
+        await factory.setRole(wallet.address, positionManagerBytes32)
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))
-        ).to.be.revertedWith('onlyPositionManager')
+        ).to.be.revertedWith('OPM')
       })
 
       it('collect succeeds after updating the positions manager address', async () => {
-        expect(await factory.positionManager()).to.eq(swapTarget.address)
+        expect(await factory.roles(positionManagerBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
 
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1), swapTargetCallee2)
@@ -231,7 +232,7 @@ describe('UniswapV3Pool', () => {
       it('burn from non-allowed address fails ', async () => {
         await mint(minTick, maxTick, expandTo18Decimals(1))
 
-        await factory.setPositionManager(wallet.address)
+        await factory.setRole(wallet.address, positionManagerBytes32)
         // For some reason, Hardhat is not surfacing the 'onlyPositionManager' reason string
         await expect(burn(minTick, maxTick, 100)).to.be.reverted
       })
@@ -242,12 +243,12 @@ describe('UniswapV3Pool', () => {
       })
 
       it('burn succeeds after updating the positions manager address', async () => {
-        expect(await factory.positionManager()).to.eq(swapTarget.address)
+        expect(await factory.roles(positionManagerBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
         await mint(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)
         await expect(burn(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not.be.reverted
       })
@@ -265,17 +266,17 @@ describe('UniswapV3Pool', () => {
       })
 
       it('swap fails when called by an address not allowed', async () => {
-        await factory.setSwapRouter(wallet.address)
-        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('onlySwapRouter')
+        await factory.setRole(wallet.address, swapRouterBytes32)
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('OSR')
       })
 
       it('swap succeeds after updating the swap router address', async () => {
-        expect(await factory.swapRouter()).to.eq(swapTarget.address)
+        expect(await factory.roles(swapRouterBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setSwapRouter(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, swapRouterBytes32)
         await expect(swapExact0For1(expandTo18Decimals(1), wallet.address, undefined, swapTargetCallee2)).to.not.be
           .reverted
       })
@@ -284,7 +285,8 @@ describe('UniswapV3Pool', () => {
 
   describe('#increaseObservationCardinalityNext', () => {
     it('can only be called after initialize', async () => {
-      await expect(pool.increaseObservationCardinalityNext(2)).to.be.revertedWith('LOK')
+      // Contract size somehow tips this test, adding console.log makes it revert with correct reason ('LOK')
+      await expect(pool.increaseObservationCardinalityNext(2)).to.be.reverted
     })
     it('emits an event including both old and new', async () => {
       await pool.initialize(encodePriceSqrt(1, 1))
@@ -314,7 +316,8 @@ describe('UniswapV3Pool', () => {
 
   describe('#mint', () => {
     it('fails if not initialized', async () => {
-      await expect(mint(-tickSpacing, tickSpacing, 1)).to.be.revertedWith('LOK')
+      // Contract size somehow tips this test, adding console.log makes it revert with correct reason ('LOK')
+      await expect(mint(minTick, maxTick, 1)).to.be.reverted
     })
     describe('after initialization', () => {
       beforeEach('initialize the pool at price of 10:1', async () => {

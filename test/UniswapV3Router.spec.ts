@@ -19,6 +19,7 @@ import {
 } from './shared/utilities'
 import { TestUniswapV3Router } from '../typechain/TestUniswapV3Router'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
+import { swapRouterBytes32 } from './shared/roles'
 
 const feeAmount = FeeAmount.MEDIUM
 const tickSpacing = TICK_SPACINGS[feeAmount]
@@ -58,7 +59,7 @@ describe('UniswapV3Pool', () => {
       poolFixture
     ))
 
-    await factory.setSwapRouter(swapTargetRouter.address)
+    await factory.setRole(swapTargetRouter.address, swapRouterBytes32)
 
     const createPoolWrapped = async (
       amount: number,
