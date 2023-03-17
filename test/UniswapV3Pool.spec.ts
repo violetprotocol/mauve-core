@@ -194,9 +194,7 @@ describe('UniswapV3Pool', () => {
 
       it('mint from non-allowed address fails', async () => {
         await factory.setRole(wallet.address, positionManagerBytes32)
-        await expect(mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith(
-          'OPM'
-        )
+        await expect(mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith('OPM')
       })
 
       it('minting succeeds after updating the positions manager address', async () => {

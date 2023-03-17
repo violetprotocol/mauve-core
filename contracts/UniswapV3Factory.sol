@@ -17,7 +17,6 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-
     constructor() {
         roles['poolDeployer'] = msg.sender;
         roles['positionManager'] = msg.sender;
@@ -56,10 +55,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     //     emit OwnerChanged(roles['owner'], _owner);
     // }
 
-
-    function setRole(address _newRoleAddress, bytes32 roleKey) external onlyOwner override {
-        if (roles[roleKey] != address(0))
-            roles[roleKey] = _newRoleAddress;
+    function setRole(address _newRoleAddress, bytes32 roleKey) external override onlyOwner {
+        if (roles[roleKey] != address(0)) roles[roleKey] = _newRoleAddress;
     }
 
     // Adding the require directly in createPool does not improve contract byte size
@@ -80,7 +77,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     }
 
     /// @inheritdoc IUniswapV3Factory
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) public onlyOwner override {
+    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override onlyOwner {
         require(fee < 1000000);
         // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
         // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
