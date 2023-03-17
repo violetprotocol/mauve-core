@@ -27,6 +27,9 @@ import {
   SwapToPriceFunction,
   BurnFunction,
   CollectFunction,
+  positionManagerBytes32,
+  swapRouterBytes32,
+  poolDeployerBytes32,
 } from './shared/utilities'
 import { TestUniswapV3Callee } from '../typechain/TestUniswapV3Callee'
 import { TestUniswapV3ReentrantCallee } from '../typechain/TestUniswapV3ReentrantCallee'
@@ -165,11 +168,11 @@ describe('UniswapV3Pool', () => {
     })
 
     it('fails if initialize is called from non pool-deployer', async () => {
-      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('onlyPoolDeployer')
+      await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('OPD')
     })
 
     it('succeeds if poolDeployer gets changed before initialize is called', async () => {
-      await factory.setPoolDeployer(other.address)
+      await factory.setRole(other.address, poolDeployerBytes32)
       await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.not.be.reverted
     })
   })
@@ -182,7 +185,7 @@ describe('UniswapV3Pool', () => {
       })
       afterEach(async () => {
         // reset to the expected contract
-        await factory.setPositionManager(swapTarget.address)
+        await factory.setRole(swapTarget.address, positionManagerBytes32)
       })
 
       it('mint from the allowed address succeeds', async () => {
@@ -190,9 +193,9 @@ describe('UniswapV3Pool', () => {
       })
 
       it('mint from non-allowed address fails', async () => {
-        await factory.setPositionManager(wallet.address)
+        await factory.setRole(wallet.address, positionManagerBytes32)
         await expect(mint(swapTarget.address, minTick, maxTick, expandTo18Decimals(1))).to.be.revertedWith(
-          'onlyPositionManager'
+          'OPM'
         )
       })
 
@@ -200,7 +203,7 @@ describe('UniswapV3Pool', () => {
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
 
         await expect(mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not
           .be.reverted
@@ -212,19 +215,19 @@ describe('UniswapV3Pool', () => {
       })
 
       it('collect from non-allowed address fails ', async () => {
-        await factory.setPositionManager(wallet.address)
+        await factory.setRole(wallet.address, positionManagerBytes32)
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1))
-        ).to.be.revertedWith('onlyPositionManager')
+        ).to.be.revertedWith('OPM')
       })
 
       it('collect succeeds after updating the positions manager address', async () => {
-        expect(await factory.positionManager()).to.eq(swapTarget.address)
+        expect(await factory.roles(positionManagerBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
 
         await expect(
           collect(wallet.address, minTick, maxTick, expandTo18Decimals(1), expandTo18Decimals(1), swapTargetCallee2)
@@ -234,7 +237,7 @@ describe('UniswapV3Pool', () => {
       it('burn from non-allowed address fails ', async () => {
         await mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
 
-        await factory.setPositionManager(wallet.address)
+        await factory.setRole(wallet.address, positionManagerBytes32)
         // For some reason, Hardhat is not surfacing the 'onlyPositionManager' reason string
         await expect(burn(minTick, maxTick, 100)).to.be.reverted
       })
@@ -245,12 +248,12 @@ describe('UniswapV3Pool', () => {
       })
 
       it('burn succeeds after updating the positions manager address', async () => {
-        expect(await factory.positionManager()).to.eq(swapTarget.address)
+        expect(await factory.roles(positionManagerBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setPositionManager(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, positionManagerBytes32)
         await mint(swapTargetCallee2.address, minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)
         await expect(burn(minTick, maxTick, expandTo18Decimals(1), swapTargetCallee2)).to.not.be.reverted
       })
@@ -268,17 +271,17 @@ describe('UniswapV3Pool', () => {
       })
 
       it('swap fails when called by an address not allowed', async () => {
-        await factory.setSwapRouter(wallet.address)
-        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('onlySwapRouter')
+        await factory.setRole(wallet.address, swapRouterBytes32)
+        await expect(swapExact0For1(expandTo18Decimals(1), wallet.address)).to.be.revertedWith('OSR')
       })
 
       it('swap succeeds after updating the swap router address', async () => {
-        expect(await factory.swapRouter()).to.eq(swapTarget.address)
+        expect(await factory.roles(swapRouterBytes32)).to.eq(swapTarget.address)
 
         const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
         const swapTargetCallee2 = (await calleeContractFactory.deploy()) as TestUniswapV3Callee
 
-        await factory.setSwapRouter(swapTargetCallee2.address)
+        await factory.setRole(swapTargetCallee2.address, swapRouterBytes32)
         await expect(swapExact0For1(expandTo18Decimals(1), wallet.address, undefined, swapTargetCallee2)).to.not.be
           .reverted
       })

@@ -19,7 +19,7 @@ const positionManagerBytes32 = '0x706f736974696f6e4d616e616765720000000000000000
 
 const createFixtureLoader = waffle.createFixtureLoader
 
-describe.only('UniswapV3Factory', () => {
+describe('UniswapV3Factory', () => {
   const [wallet, other] = waffle.provider.getWallets()
 
   let factory: UniswapV3Factory
