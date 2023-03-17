@@ -54,6 +54,7 @@
     "typescript": "^3.7.3"
   },
   "scripts": {
+    "prepare": "yarn clean && yarn compile",
     "compile": "hardhat compile",
     "clean": "hardhat clean",
     "test": "hardhat test",
