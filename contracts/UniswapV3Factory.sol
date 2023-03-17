@@ -28,8 +28,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         emit FeeAmountEnabled(10000, 200);
     }
 
-    modifier onlyPoolDeployer {
-        // OPD revert reason -> Only Pool Deployer
+    modifier onlyPoolAdmin {
+        // OPD revert reason -> Only Pool Admin
         require(msg.sender == roles['poolAdmin'], 'OPA');
         _;
     }
@@ -44,7 +44,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external override noDelegateCall onlyPoolDeployer returns (address pool) {
+    ) external override noDelegateCall onlyPoolAdmin returns (address pool) {
         require(tokenA != tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0));

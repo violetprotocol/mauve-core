@@ -128,9 +128,9 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         require(msg.sender == IUniswapV3Factory(factory).roles('positionManager'), 'OPM');
     }
 
-    /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('poolDeployer')
-    modifier onlyPoolDeployer {
-        // OPD revert reason -> Only Pool Deployer
+    /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('poolAdmin')
+    modifier onlyPoolAdmin {
+        // OPA revert reason -> Only Pool Admin
         require(msg.sender == IUniswapV3Factory(factory).roles('poolAdmin'), 'OPA');
         _;
     }
@@ -289,7 +289,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
     /// @inheritdoc IUniswapV3PoolActions
     /// @dev not locked because it initializes unlocked
-    function initialize(uint160 sqrtPriceX96) external override onlyPoolDeployer {
+    function initialize(uint160 sqrtPriceX96) external override onlyPoolAdmin {
         require(slot0.sqrtPriceX96 == 0, 'AI');
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);

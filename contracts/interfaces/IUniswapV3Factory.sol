@@ -35,7 +35,7 @@ interface IUniswapV3Factory {
     /// @return The tick spacing
     function feeAmountTickSpacing(uint24 fee) external view returns (int24);
 
-    /// @notice Updates a role defined in the factory roled: [OWNER, POOLDEPLOYER, POSITIONMANAGER, SWAPROUTER]
+    /// @notice Updates a role defined in the factory roled: [OWNER, POOLADMIN, POSITIONMANAGER, SWAPROUTER]
     /// @dev Must be called by the current owner
     /// @param _newRoleAddress The new address of the selected role on the factory
     /// @param roleKey The selected role to be changed on the factory
