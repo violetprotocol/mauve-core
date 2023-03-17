@@ -103,8 +103,8 @@ describe('UniswapV3Pool', () => {
       await pool0.initialize(encodePriceSqrt(1, 1))
       await pool1.initialize(encodePriceSqrt(1, 1))
 
-      await pool0Functions.mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
-      await pool1Functions.mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
+      await pool0Functions.mint(minTick, maxTick, expandTo18Decimals(1))
+      await pool1Functions.mint(minTick, maxTick, expandTo18Decimals(1))
     })
 
     it('multi-swap', async () => {

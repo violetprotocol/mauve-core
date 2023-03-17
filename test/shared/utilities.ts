@@ -83,7 +83,6 @@ export type SwapFunction = (
 ) => Promise<ContractTransaction>
 export type SwapToPriceFunction = (sqrtPriceX96: BigNumberish, to: Wallet | string) => Promise<ContractTransaction>
 export type MintFunction = (
-  recipient: string,
   tickLower: BigNumberish,
   tickUpper: BigNumberish,
   liquidity: BigNumberish,
@@ -198,15 +197,13 @@ export function createPoolFunctions({
     return swap(token1, [0, amount], to, sqrtPriceLimitX96, targetOverride)
   }
 
-  const mint: MintFunction = async (_recipient, tickLower, tickUpper, liquidity, targetContractOverride) => {
+  const mint: MintFunction = async (tickLower, tickUpper, liquidity, targetContractOverride) => {
     const target = !!targetContractOverride ? targetContractOverride : swapTarget
 
     await token0.approve(target.address, constants.MaxUint256)
     await token1.approve(target.address, constants.MaxUint256)
-    // TODO: update this function and mint in TestUniswapV3Callee since
-    // recipient is not used
-    const recipient = constants.AddressZero
-    return target.mint(pool.address, recipient, tickLower, tickUpper, liquidity)
+
+    return target.mint(pool.address, tickLower, tickUpper, liquidity)
   }
 
   const burn: BurnFunction = async (tickLower, tickUpper, amount, targetContractOverride) => {

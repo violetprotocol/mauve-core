@@ -113,11 +113,11 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback {
 
     function mint(
         address pool,
-        address,
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
     ) external returns (uint256 amount0, uint256 amount1) {
+        // Always minting a position to `this` contract (similar behavior as in NonfungiblePositionManager)
         return IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, amount, abi.encode(msg.sender));
     }
 
