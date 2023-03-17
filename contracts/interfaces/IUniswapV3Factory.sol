@@ -37,7 +37,7 @@ interface IUniswapV3Factory {
 
     /// @notice Returns the current address registered as a role on the factory
     /// @dev Can be called by anyone
-    /// @param roleKey The selected role to be retrieved from the factory 
+    /// @param roleKey The selected role to be retrieved from the factory
     /// @return The address of the respective roleKey
     function roles(bytes32 roleKey) external view returns (address);
 
