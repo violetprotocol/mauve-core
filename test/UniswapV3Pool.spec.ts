@@ -165,7 +165,7 @@ describe('UniswapV3Pool', () => {
       await expect(pool.initialize(sqrtPriceX96)).to.emit(pool, 'Initialize').withArgs(sqrtPriceX96, -6932)
     })
 
-    it('fails if initialize is called from non pool-deployer', async () => {
+    it('fails if initialize is called from non pool-admin', async () => {
       await expect(pool.connect(other).initialize(MIN_SQRT_RATIO)).to.be.revertedWith('OPA')
     })
 

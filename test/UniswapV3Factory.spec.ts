@@ -120,13 +120,13 @@ describe('UniswapV3Factory', () => {
       await expect(factory.createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be.reverted
     })
 
-    it('fails if create pool is called from non pool-deployer', async () => {
+    it('fails if create pool is called from non pool-admin', async () => {
       await expect(
         factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)
       ).to.be.revertedWith('OPA')
     })
 
-    it('succeeds if pool deployer gets changed before createPool is called', async () => {
+    it('succeeds if pool admin gets changed before createPool is called', async () => {
       await factory.setRole(other.address, poolAdminBytes32)
       await expect(factory.connect(other).createPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1], FeeAmount.MEDIUM)).to.not.be
         .reverted
@@ -151,7 +151,7 @@ describe('UniswapV3Factory', () => {
       expect(await factory.roles(poolAdminBytes32)).to.eq(other.address)
     })
 
-    it('can be called by original owner after new pool deployer is set', async () => {
+    it('can be called by original owner after new pool admin is set', async () => {
       await factory.setRole(other.address, poolAdminBytes32)
       await expect(factory.setRole(wallet.address, poolAdminBytes32)).to.not.be.reverted
     })
