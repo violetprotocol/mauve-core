@@ -5,6 +5,7 @@ import snapshotGasCost from './shared/snapshotGasCost'
 
 import { FeeAmount, getCreate2Address, TICK_SPACINGS } from './shared/utilities'
 import { ownerBytes32, swapRouterBytes32, positionManagerBytes32, poolAdminBytes32 } from './shared/roles'
+import { BigNumber } from 'ethers'
 
 const { constants } = ethers
 
@@ -267,6 +268,30 @@ describe('UniswapV3Factory', () => {
     it('enables pool creation', async () => {
       await factory.enableFeeAmount(250, 15)
       await createAndCheckPool([TEST_ADDRESSES[0], TEST_ADDRESSES[1]], 250, 15)
+    })
+  })
+
+  describe('#setMauveComplianceRegime', () => {
+    it('fails if caller is not owner', async () => {
+      await expect(factory.connect(other).setMauveComplianceRegime([0])).to.be.reverted
+
+      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([])
+    })
+
+    it('updates mauve compliance regime', async () => {
+      await expect(factory.connect(wallet).setMauveComplianceRegime([0])).to.not.be.reverted
+
+      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([BigNumber.from(0)])
+    })
+  })
+
+  describe('#getMauveComplianceRegime', () => {
+    beforeEach('set regime', async () => {
+      await expect(factory.connect(wallet).setMauveComplianceRegime([0])).to.not.be.reverted
+    })
+
+    it('correctly returns mauve compliance regime', async () => {
+      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([BigNumber.from(0)])
     })
   })
 })
