@@ -110,7 +110,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('owner')
     modifier onlyFactoryOwner() {
         // OO revert reason -> Only Owner
-        require(msg.sender == IUniswapV3Factory(factory).roles('owner'), 'OO');
+        _checkRole('owner', 'OO');
         _;
     }
 
@@ -118,21 +118,25 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     modifier onlySwapRouter {
         _;
         // OSR revert reason -> Only Swap Router
-        require(msg.sender == IUniswapV3Factory(factory).roles('swapRouter'), 'OSR');
+        _checkRole('swapRouter', 'OSR');
     }
 
     /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('positionManager')
     modifier onlyPositionManager {
         _;
         // OPM revert reason -> Only Position Manager
-        require(msg.sender == IUniswapV3Factory(factory).roles('positionManager'), 'OPM');
+        _checkRole('positionManager', 'OPM');
     }
 
     /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#roles('poolAdmin')
     modifier onlyPoolAdmin {
         // OPA revert reason -> Only Pool Admin
-        require(msg.sender == IUniswapV3Factory(factory).roles('poolAdmin'), 'OPA');
+        _checkRole('poolAdmin', 'OPA');
         _;
+    }
+
+    function _checkRole(bytes32 role, string memory revertReason) internal view virtual {
+        require(msg.sender == IUniswapV3Factory(factory).roles(role), revertReason);
     }
 
     constructor() {
