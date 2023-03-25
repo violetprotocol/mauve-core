@@ -47,15 +47,18 @@ interface IUniswapV3Factory {
     /// @return The address of the respective roleKey
     function roles(bytes32 roleKey) external view returns (address);
 
-    /// @notice Returns the current Mauve Compliance Regime
-    /// @dev This defines the set of VioletID tokens that an account must own to be compliant with Mauve
-    /// @return The list of VioletID tokens that are required under the Mauve Compliance Regime
-    function getMauveComplianceRegime() external view returns (uint256[] memory);
+    /// @notice Returns the currently approved VioletID tokens to interact with Mauve
+    /// @dev This defines the set of VioletID tokens that are used by Mauve to authorize
+    /// certain interactions. More specifically, an account must own at least one of these tokens to
+    /// become the owner of a LP NFT via transfer or withdraw funds in case
+    /// the emergency mode is activated.
+    /// @return The list of VioletID tokens that are accepted
+    function getMauveTokenIdsAllowedToInteract() external view returns (uint256[] memory);
 
-    /// @notice Updates the current Mauve Compliance Regime
+    /// @notice Updates the current list of Token IDs allowed to interact
     /// @dev Must be called by the current owner
-    /// @param tokenIds The VioletID tokenIDs that compromise the new Mauve Compliance Regime
-    function setMauveComplianceRegime(uint256[] memory tokenIds) external;
+    /// @param tokenIds The VioletID tokenIDs that are accepted by Mauve
+    function setMauveTokenIdsAllowedToInteract(uint256[] memory tokenIds) external;
 
     /// @notice Returns the pool address for a given pair of tokens and a fee, or address 0 if it does not exist
     /// @dev tokenA and tokenB may be passed in either token0/token1 or token1/token0 order
