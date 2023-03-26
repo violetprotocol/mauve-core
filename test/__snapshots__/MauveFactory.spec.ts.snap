@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MauveFactory #createPool gas 1`] = `4383759`;
+
+exports[`MauveFactory factory bytecode size 1`] = `24510`;
+
+exports[`MauveFactory pool bytecode size 1`] = `21268`;
