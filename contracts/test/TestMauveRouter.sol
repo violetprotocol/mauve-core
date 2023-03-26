@@ -74,17 +74,9 @@ contract TestMauveRouter is IMauveSwapCallback {
             );
         } else {
             if (amount0Delta > 0) {
-                IERC20Minimal(IMauvePool(msg.sender).token0()).transferFrom(
-                    payer,
-                    msg.sender,
-                    uint256(amount0Delta)
-                );
+                IERC20Minimal(IMauvePool(msg.sender).token0()).transferFrom(payer, msg.sender, uint256(amount0Delta));
             } else {
-                IERC20Minimal(IMauvePool(msg.sender).token1()).transferFrom(
-                    payer,
-                    msg.sender,
-                    uint256(amount1Delta)
-                );
+                IERC20Minimal(IMauvePool(msg.sender).token1()).transferFrom(payer, msg.sender, uint256(amount1Delta));
             }
         }
     }

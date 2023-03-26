@@ -16,13 +16,7 @@ contract TestMauveSwapPay is IMauveSwapCallback {
         uint256 pay0,
         uint256 pay1
     ) external {
-        IMauvePool(pool).swap(
-            recipient,
-            zeroForOne,
-            amountSpecified,
-            sqrtPriceX96,
-            abi.encode(msg.sender, pay0, pay1)
-        );
+        IMauvePool(pool).swap(recipient, zeroForOne, amountSpecified, sqrtPriceX96, abi.encode(msg.sender, pay0, pay1));
     }
 
     function mauveSwapCallback(
