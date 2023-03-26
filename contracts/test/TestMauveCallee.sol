@@ -149,7 +149,7 @@ contract TestMauveCallee is IMauveMintCallback, IMauveSwapCallback {
 
     event MintCallback(uint256 amount0Owed, uint256 amount1Owed);
 
-    function MauveMintCallback(
+    function mauveMintCallback(
         uint256 amount0Owed,
         uint256 amount1Owed,
         bytes calldata data
