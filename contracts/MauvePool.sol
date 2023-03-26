@@ -504,7 +504,7 @@ contract MauvePool is IMauvePool, NoDelegateCall {
         uint256 balance1Before;
         if (amount0 > 0) balance0Before = balance0();
         if (amount1 > 0) balance1Before = balance1();
-        IMauveMintCallback(msg.sender).MauveMintCallback(amount0, amount1, data);
+        IMauveMintCallback(msg.sender).mauveMintCallback(amount0, amount1, data);
         if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
         if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
 
