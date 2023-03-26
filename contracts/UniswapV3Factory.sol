@@ -17,7 +17,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-    uint256[] internal mauveComplianceRegime;
+    uint256[] internal tokenIdsAllowedToInteract;
 
     constructor() {
         roles['poolAdmin'] = msg.sender;
@@ -42,14 +42,14 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     }
 
     /// @inheritdoc IUniswapV3Factory
-    function getMauveComplianceRegime() external view override returns (uint256[] memory) {
-        return mauveComplianceRegime;
+    function getMauveTokenIdsAllowedToInteract() external view override returns (uint256[] memory) {
+        return tokenIdsAllowedToInteract;
     }
 
     /// @inheritdoc IUniswapV3Factory
-    function setMauveComplianceRegime(uint256[] memory tokenIds) external override onlyOwner {
-        delete mauveComplianceRegime;
-        mauveComplianceRegime = tokenIds;
+    function setMauveTokenIdsAllowedToInteract(uint256[] memory tokenIds) external override onlyOwner {
+        delete tokenIdsAllowedToInteract;
+        tokenIdsAllowedToInteract = tokenIds;
     }
 
     /// @inheritdoc IUniswapV3Factory

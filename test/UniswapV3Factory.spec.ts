@@ -271,27 +271,27 @@ describe('UniswapV3Factory', () => {
     })
   })
 
-  describe('#setMauveComplianceRegime', () => {
+  describe('#setMauveTokenIdsAllowedToInteract', () => {
     it('fails if caller is not owner', async () => {
-      await expect(factory.connect(other).setMauveComplianceRegime([0])).to.be.reverted
+      await expect(factory.connect(other).setMauveTokenIdsAllowedToInteract([0])).to.be.reverted
 
-      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([])
+      expect(await factory.getMauveTokenIdsAllowedToInteract()).to.deep.equal([])
     })
 
-    it('updates mauve compliance regime', async () => {
-      await expect(factory.connect(wallet).setMauveComplianceRegime([0])).to.not.be.reverted
+    it('updates Violet ID Tokens approved for Mauve', async () => {
+      await expect(factory.connect(wallet).setMauveTokenIdsAllowedToInteract([0])).to.not.be.reverted
 
-      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([BigNumber.from(0)])
+      expect(await factory.getMauveTokenIdsAllowedToInteract()).to.deep.equal([BigNumber.from(0)])
     })
   })
 
-  describe('#getMauveComplianceRegime', () => {
-    beforeEach('set regime', async () => {
-      await expect(factory.connect(wallet).setMauveComplianceRegime([0])).to.not.be.reverted
+  describe('#getMauveTokenIdsAllowedToInteract', () => {
+    beforeEach('set Violet ID Tokens approved for Mauve', async () => {
+      await expect(factory.connect(wallet).setMauveTokenIdsAllowedToInteract([0])).to.not.be.reverted
     })
 
-    it('correctly returns mauve compliance regime', async () => {
-      expect(await factory.callStatic.getMauveComplianceRegime()).to.deep.equal([BigNumber.from(0)])
+    it('correctly returns Violet ID Tokens approved for Mauve', async () => {
+      expect(await factory.getMauveTokenIdsAllowedToInteract()).to.deep.equal([BigNumber.from(0)])
     })
   })
 })
