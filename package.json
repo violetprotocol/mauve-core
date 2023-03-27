@@ -1,26 +1,25 @@
 {
-  "name": "@violetprotocol/mauve-v3-core",
+  "name": "@violetprotocol/mauve-core",
   "description": "Core smart contracts of Mauve",
   "license": "BUSL-1.1",
   "publishConfig": {
     "access": "restricted"
   },
-  "version": "1.2.2",
+  "version": "1.2.3",
   "homepage": "https://mauve.org",
   "keywords": [
     "mauve",
-    "core",
-    "v3"
+    "core"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/violetprotocol/mauve-v3-core"
+    "url": "https://github.com/violetprotocol/mauve-core"
   },
   "files": [
     "contracts/interfaces",
     "contracts/libraries",
-    "artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json",
-    "artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json",
+    "artifacts/contracts/MauveFactory.sol/MauveFactory.json",
+    "artifacts/contracts/MauvePool.sol/MauvePool.json",
     "artifacts/contracts/interfaces/**/*.json",
     "!artifacts/contracts/interfaces/**/*.dbg.json"
   ],
