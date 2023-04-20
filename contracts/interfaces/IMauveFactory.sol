@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-/// @title The interface for the Uniswap V3 Factory
-/// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
+/// @title The interface for the Mauve Factory
+/// @notice The Mauve Factory facilitates creation of Mauve pools and control over the protocol fees
 interface IMauveFactory {
     /// @notice Emitted when a pool is created
     /// @param token0 The first token of the pool by address sort order
