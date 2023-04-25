@@ -8,8 +8,8 @@ import './NoDelegateCall.sol';
 
 import './MauvePool.sol';
 
-/// @title Canonical Uniswap V3 factory
-/// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
+/// @title Canonical Mauve factory
+/// @notice Deploys Mauve pools and manages ownership and control over pool protocol fees
 contract MauveFactory is IMauveFactory, MauvePoolDeployer, NoDelegateCall {
     mapping(bytes32 => address) public override roles;
     /// @inheritdoc IMauveFactory
