@@ -5,7 +5,7 @@
   "publishConfig": {
     "access": "restricted"
   },
-  "version": "1.2.3",
+  "version": "1.2.4",
   "homepage": "https://mauve.org",
   "keywords": [
     "mauve",
