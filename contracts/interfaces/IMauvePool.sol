@@ -8,8 +8,8 @@ import './pool/IMauvePoolActions.sol';
 import './pool/IMauvePoolOwnerActions.sol';
 import './pool/IMauvePoolEvents.sol';
 
-/// @title The interface for a Uniswap V3 Pool
-/// @notice A Uniswap pool facilitates swapping and automated market making between any two assets that strictly conform
+/// @title The interface for a Mauve Pool
+/// @notice A Mauve pool facilitates swapping and automated market making between any two assets that strictly conform
 /// to the ERC20 specification
 /// @dev The pool interface is broken up into many smaller pieces
 interface IMauvePool is
